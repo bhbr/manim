@@ -169,6 +169,54 @@ class DoubleMinkowskiDiagram(VMobject):
             self.transformed_left_diagram, self.transformed_right_diagram)
 
 
+class Clock(Mobject):
+    CONFIG = {
+        "radius": 0.25,
+        "angle": 0,
+        "color": YELLOW
+    }
+
+    def generate_points(self):
+
+        self.center = self.get_center()
+
+        self.submobjects = []
+        self.circle = Circle(
+            radius = self.radius,
+            stroke_color = self.color
+        )
+        self.time_sector = Sector(
+            outer_radius = 0.8 * self.radius,
+            angle = self.angle,
+            fill_opacity = 1,
+            fill_color = self.color,
+            stroke_width = 0
+        ).rotate(TAU/4).flip(UP)
+        self.time_sector.move_arc_center_to(self.circle.get_center())
+
+        self.add(self.circle, self.time_sector)
+        self.move_to(self.center)
+
+
+class PropagateClock(Animation):
+
+    CONFIG = {
+        "start_angle": 0,
+        "added_angle": TAU,
+        "rate_func": linear
+    }
+
+    def __init__(self, mobject, added_angle, **kwargs):
+        self.start_angle = mobject.angle
+        self.added_angle = added_angle
+        Animation.__init__(self, mobject, **kwargs)
+
+    def update_mobject(self, alpha):
+        new_angle = self.start_angle + alpha * self.added_angle
+        while new_angle >= TAU:
+            new_angle -= TAU
+        self.mobject.angle = new_angle
+        self.mobject.generate_points()
 
 
 
