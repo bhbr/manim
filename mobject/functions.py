@@ -33,18 +33,18 @@ class FunctionGraph(ParametricFunction):
         "color": YELLOW,
         "x_min": -FRAME_X_RADIUS,
         "x_max": FRAME_X_RADIUS,
+        "y_scale": 1.0
     }
 
     def __init__(self, function, **kwargs):
         digest_config(self, kwargs)
+        self.x_scale = (self.x_max - self.x_min)/(self.t_max - self.t_min)
 
         def parametric_function(t):
-            return t * RIGHT + function(t) * UP
+            return t * self.x_scale * RIGHT + self.y_scale * function(t) * UP
         ParametricFunction.__init__(
             self,
             parametric_function,
-            t_min=self.x_min,
-            t_max=self.x_max,
             **kwargs
         )
         self.function = function

@@ -54,6 +54,7 @@ class SVGMobject(VMobject):
             os.path.join(SVG_IMAGE_DIR, self.file_name),
             os.path.join(SVG_IMAGE_DIR, self.file_name + ".svg"),
             self.file_name,
+            self.file_name + ".svg",
         ]
         for path in possible_paths:
             if os.path.exists(path):
