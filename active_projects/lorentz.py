@@ -332,7 +332,8 @@ class ForceArrow(Arrow):
         "length": 1.0,
         "direction": UP,
         "buff": 0,
-        "stroke_width": 5
+        "stroke_width": 5,
+        "color": GREEN
     }
 
     def force_tip(self):
@@ -362,13 +363,13 @@ class AnimateForceArrow(Animation):
             self.mobject.origin,
             self.mobject.direction,
             self.mobject.length,
-            color = RED
+            color = self.mobject.color
         )
         self.mobject.points = new_arrow.points
         self.mobject.submobjects = new_arrow.submobjects
         self.mobject.stroke_width = 5
-        self.mobject.stroke_color = RED
-        self.mobject.fill_color = RED
+        self.mobject.stroke_color = self.mobject.color
+        self.mobject.fill_color = self.mobject.color
 
 
 
