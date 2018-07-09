@@ -224,7 +224,7 @@ class Clock(Mobject):
 
 class CircularClock(VGroup):
     CONFIG = {
-        "radius": 0.8,
+        "radius": 0.75,
         "prop": 0,
         "color": YELLOW,
     }
@@ -386,8 +386,9 @@ class WindowedGraph(VGroup):
         "t_max": 1.0,
         "color": RED,
         "alpha": 0.5,
-        "subdivs": 30,
-        "show_labels": False
+        "subdivs": 100,
+        "show_labels": False,
+        "stroke_width": 5
     }
 
     def get_width(self):
@@ -398,7 +399,7 @@ class WindowedGraph(VGroup):
         digest_config(self, kwargs)
         self.function = function
         self.rect = Rectangle(width = self.get_width(), height = self.height)
-        self.graph = VMobject(stroke_color = self.color, stroke_width = 10)
+        self.graph = VMobject(stroke_color = self.color, stroke_width = self.stroke_width)
         self.time_line = self.get_time_line()
         if self.show_labels:
             self.time_text = TextMobject("Zeit", color = YELLOW)
@@ -419,7 +420,7 @@ class WindowedGraph(VGroup):
         time_line_coord = (1 - self.alpha) * self.t_min + self.alpha * self.t_max
         time_line_point = self.get_point_from_t(time_line_coord)
         time_line_point[1] = ll_corner[1]
-        return Line(ll_corner, time_line_point, color = YELLOW, stroke_width = 10)
+        return Line(ll_corner, time_line_point, color = YELLOW, stroke_width = 5)
 
 
     def get_point_from_t(self, t):
