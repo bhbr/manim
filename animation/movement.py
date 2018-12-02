@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from constants import *
 
 from animation.animation import Animation

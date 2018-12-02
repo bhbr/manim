@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import numpy as np
 
@@ -21,6 +21,7 @@ from utils.config_ops import digest_config
 from utils.rate_functions import squish_rate_func
 from utils.rate_functions import there_and_back
 from utils.rate_functions import wiggle
+from functools import reduce
 
 
 class FocusOn(Transform):
@@ -114,6 +115,8 @@ class AnimationOnSurroundingRectangle(AnimationGroup):
         rect = SurroundingRectangle(
             mobject, **self.surrounding_rectangle_config
         )
+        if "surrounding_rectangle_config" in kwargs:
+            kwargs.pop("surrounding_rectangle_config")
         AnimationGroup.__init__(self, self.rect_to_animation(rect, **kwargs))
 
 
@@ -220,13 +223,13 @@ class Vibrate(Animation):
 
     def update_mobject(self, alpha):
         time = alpha * self.run_time
-        families = map(
-            Mobject.submobject_family,
+        families = list(map(
+            Mobject.get_family,
             [self.mobject, self.starting_mobject]
-        )
+        ))
         for mob, start in zip(*families):
             mob.points = np.apply_along_axis(
-                lambda (x, y, z): (x, y + self.wave_function(x, time), z),
+                lambda x_y_z: (x_y_z[0], x_y_z[1] + self.wave_function(x_y_z[0], time), x_y_z[2]),
                 1, start.points
             )
 

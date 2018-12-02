@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+
 import numpy as np
 import itertools as it
 from copy import deepcopy
@@ -9,7 +10,7 @@ from big_ol_pile_of_manim_imports import *
 from script_wrapper import command_line_create_scene
 
 MOVIE_PREFIX = "counting_in_binary/"
-BASE_HAND_FILE = os.path.join(ANIMATIONS_DIR, MOVIE_PREFIX, "Base.mp4")
+BASE_HAND_FILE = os.path.join(VIDEO_DIR, MOVIE_PREFIX, "Base.mp4")
 FORCED_FRAME_DURATION = 0.02
 TIME_RANGE = (0, 42)
 INITIAL_PADDING = 27
@@ -83,7 +84,7 @@ class Hand(ImageMobject):
     def __init__(self, num, small = False, **kwargs):
         Mobject2D.__init__(self, **kwargs)
         path = os.path.join(
-            ANIMATIONS_DIR, MOVIE_PREFIX, "images", "Hand%d.png"%num
+            VIDEO_DIR, MOVIE_PREFIX, "images", "Hand%d.png"%num
         )
         invert = False
         if not self.read_in_cached_attrs(path, invert):
@@ -159,7 +160,7 @@ class SaveEachNumber(OverHand):
         OverHand.construct(self)
         for count in COUNT_TO_FRAME_NUM:
             path = os.path.join(
-                ANIMATIONS_DIR, MOVIE_PREFIX, "images",
+                VIDEO_DIR, MOVIE_PREFIX, "images",
                 "Hand%d.png"%count
             )
             Image.fromarray(self.frames[COUNT_TO_FRAME_NUM[count]]).save(path)
@@ -254,7 +255,7 @@ class ShowReadingRule(Scene):
         self.wait()
         self.remove(question)
         self.add(answer[0])
-        counts = map(finger_tip_power_of_2, range(5))
+        counts = list(map(finger_tip_power_of_2, list(range(5))))
         for count in counts:
             self.play(SpinInFromNothing(count, run_time = 0.3))
         self.wait()
@@ -268,7 +269,7 @@ class ShowReadingRule(Scene):
         hand = Hand(num, small = True)
         bool_arr = [c == '1' for c in five_char_binary(num)]
         counts = [4-count for count in range(5) if bool_arr[count]]
-        count_mobs = map(finger_tip_power_of_2, counts)
+        count_mobs = list(map(finger_tip_power_of_2, counts))
         if num in [6, 27]:
             count_mobs[1].shift(0.2*DOWN + 0.2*LEFT)
         if num in [6, 17]:

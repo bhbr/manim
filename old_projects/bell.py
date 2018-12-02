@@ -2,7 +2,8 @@ from big_ol_pile_of_manim_imports import *
 
 from tqdm import tqdm as ProgressDisplay
 
-from waves import *
+from .waves import *
+from functools import reduce
 
 #force_skipping
 #revert_to_original_skipping_status
@@ -193,7 +194,7 @@ class PhotonsThroughPerpendicularFilters(PhotonPassesCompletelyOrNotAtAll):
                 em_wave = self.em_wave.copy(),
                 run_time = 1,
             )
-            for x in -2, 2, 10
+            for x in (-2, 2, 10)
         ]
 
     def get_probability_text(self, prob = 0):
@@ -217,7 +218,7 @@ class PhotonsThroughPerpendicularFilters(PhotonPassesCompletelyOrNotAtAll):
                 color = here.get_color(),
                 normal_vector = DOWN+OUT,
             )
-            for here, x in (here1, 0), (here2, 4)
+            for here, x in ((here1, 0), (here2, 4))
         ]
         prob_text.add(*arrows)
 
@@ -225,7 +226,7 @@ class PhotonsThroughPerpendicularFilters(PhotonPassesCompletelyOrNotAtAll):
 
 class MoreFiltersMoreLight(FilterScene):
     CONFIG = {
-        "filter_x_coordinates" : range(-2, 3),
+        "filter_x_coordinates" : list(range(-2, 3)),
         "pol_filter_configs" : [
             {
                 "include_arrow_label" : False,
@@ -289,7 +290,7 @@ class MoreFiltersMoreLight(FilterScene):
 
     def build_color_map(self, pfs):
         phi, theta = self.camera.get_phi(), self.camera.get_theta()
-        self.set_camera_position(np.pi/2, -np.pi)
+        self.set_camera_orientation(np.pi/2, -np.pi)
 
         self.original_rgbas = [(255, 255, 255)]
         self.new_rgbas = [self.arrow_rgb]
@@ -315,7 +316,7 @@ class MoreFiltersMoreLight(FilterScene):
 
             self.new_rgbas.append(new_rgb)
             self.camera.reset()
-        self.set_camera_position(phi, theta)
+        self.set_camera_orientation(phi, theta)
 
     def update_frame(self, mobjects = None, image = None):
         FilterScene.update_frame(self, mobjects)
@@ -397,7 +398,7 @@ class ShowALittleMath(TeacherStudentsScene):
                     exp1.get_parts_by_tex(tex).copy(),
                     exp2.get_parts_by_tex(tex).copy(),
                 )
-                for tex in color_map.keys()
+                for tex in list(color_map.keys())
         ] + [Write(exp2, run_time = 2)])
         self.change_student_modes(
             *["pondering"]*3,
@@ -567,7 +568,7 @@ class AngleToProbabilityChart(Scene):
         ])
         prob_mobs.set_color(YELLOW)
 
-        angle_prob_pairs = zip(angle_mobs, prob_mobs)
+        angle_prob_pairs = list(zip(angle_mobs, prob_mobs))
         for angle_mob, prob_mob in angle_prob_pairs:
             prob_mob.next_to(angle_mob, RIGHT, buff = 3)
         for prob_mob in prob_mobs[1:]:
@@ -590,7 +591,7 @@ class ShowVariousFilterPairsWithPhotonsOverTime(PhotonsThroughPerpendicularFilte
         "filter_x_coordinates" : [-2, 2, 2, 2, 2],
         "pol_filter_configs" : [
             {"filter_angle" : angle}
-            for angle in 0, 0, np.pi/2, np.pi/4, np.pi/8
+            for angle in (0, 0, np.pi/2, np.pi/4, np.pi/8)
         ],
         "apply_filter" : False,
     }
@@ -838,7 +839,7 @@ class ShowVariousFilterPairs(ShowVariousFilterPairsWithPhotonsOverTime):
         n = self.n_lines
         start, end = [
             (f.point_from_proportion(0.75) if f is not None else None)
-            for f in filter1, filter2
+            for f in (filter1, filter2)
         ]
         if start is None:
             start = end + self.line_start_length*LEFT
@@ -878,7 +879,7 @@ class ShowVariousFilterPairsFrom0To45(ShowVariousFilterPairs):
 
         cosines = VGroup(*[
             TexMobject("\\cos^2(%s^\\circ)"%str(x))
-            for x in 45, 22.5
+            for x in (45, 22.5)
         ])
         cosines.scale(0.8)
         # cosines.set_color(BLUE)
@@ -888,7 +889,7 @@ class ShowVariousFilterPairsFrom0To45(ShowVariousFilterPairs):
 
         self.play(LaggedStart(ShowCreation, rects))
         self.wait()
-        self.play(*map(Write, cosines), run_time = 2)
+        self.play(*list(map(Write, cosines)), run_time = 2)
         self.wait()
 
 class ForgetPreviousActions(ShowVariousFilterPairs):
@@ -896,7 +897,7 @@ class ForgetPreviousActions(ShowVariousFilterPairs):
         "filter_x_coordinates" : [-6, -2, 2, 2, 2],
         "pol_filter_configs" : [
             {"filter_angle" : angle}
-            for angle in np.pi/4, 0, np.pi/4, np.pi/3, np.pi/6
+            for angle in (np.pi/4, 0, np.pi/4, np.pi/3, np.pi/6)
         ],
         "start_theta" : -0.6*np.pi,
         "EMWave_config" : {
@@ -1336,10 +1337,10 @@ class RemoveBFromLabeledFilters(IntroduceLabeledFiltersNoRotation):
         self.wait()
 
     def fade_in_labels(self):
-        self.play(*map(FadeIn, [
+        self.play(*list(map(FadeIn, [
             self.blocked_at_B_label_group,
             self.blocked_at_C_label_group,
-        ]))
+        ])))
         self.wait()
 
 class NumbersSuggestHiddenVariablesAreImpossible(TeacherStudentsScene):
@@ -1393,7 +1394,7 @@ class VennDiagramProofByContradiction(Scene):
                     "%s \\\\"%start,
                     "through", char + "$\\! \\uparrow$"
                 ).set_color_by_tex(char, circle.get_color())
-                for start in "Would pass", "Pass"
+                for start in ("Would pass", "Pass")
             ]
             for mob in label, alt_label:
                 mob[-1][-1].rotate_in_place(-angle)
@@ -1471,7 +1472,7 @@ class VennDiagramProofByContradiction(Scene):
         #Split to hundred
         photons = VGroup(*[photon.deepcopy() for x in range(100)])
         self.arrange_photons_in_circle(photons)
-        photons.scale_to_fit_height(6)
+        photons.set_height(6)
         photons.next_to(words, DOWN)
         photons.to_edge(LEFT)
 
@@ -1553,7 +1554,7 @@ class VennDiagramProofByContradiction(Scene):
             MoveToTarget(A),
             MoveToTarget(A.label),
             FadeOut(self.photon_words),
-            self.photons.scale_to_fit_height,
+            self.photons.set_height,
                 0.85*A.target.get_height(),
             self.photons.space_out_submobjects, 0.8,
             self.photons.move_to, A.target,
@@ -1582,7 +1583,7 @@ class VennDiagramProofByContradiction(Scene):
 
         B_center = B.target.get_center()
         photons.sort_submobjects(
-            lambda p : np.linalg.norm(p-B_center)
+            lambda p : get_norm(p-B_center)
         )
         in_B = VGroup(*photons[:85])
         out_of_B = VGroup(*photons[85:])
@@ -1661,7 +1662,7 @@ class VennDiagramProofByContradiction(Scene):
         )
 
         in_B.sort_submobjects(
-            lambda p : np.linalg.norm(p - C_center)
+            lambda p : get_norm(p - C_center)
         )
         in_C = VGroup(*in_B[:-11])
         out_of_C = VGroup(*in_B[-11:])
@@ -1770,7 +1771,7 @@ class VennDiagramProofByContradiction(Scene):
         terms[0].remove(less_than)
         plus = terms[2][0][0]
         terms[2][0].remove(plus)
-        rects = map(SurroundingRectangle, terms)
+        rects = list(map(SurroundingRectangle, terms))
         terms[2][0].add_to_back(plus)
         last_rects = VGroup(*rects[1:])
 
@@ -1853,13 +1854,13 @@ class VennDiagramProofByContradiction(Scene):
 
         self.play(
             FadeIn(funny_business),
-            *map(Write, braces),
+            *list(map(Write, braces)),
             run_time = 1
         )
         self.wait()
         self.play(
             FadeIn(less_than),
-            *map(FadeOut, [funny_business, braces])
+            *list(map(FadeOut, [funny_business, braces]))
         )
 
         for term, group, region, num in zip(terms, photon_groups, regions, nums)[1:]:
@@ -1976,7 +1977,7 @@ class VennDiagramProofByContradiction(Scene):
                 fill_opacity = 0.5,
                 fill_color = YELLOW,
             )
-            for s in "in_A_out_B", "in_A_in_B_out_C", "in_A_out_C", "in_A_in_B"
+            for s in ("in_A_out_B", "in_A_in_B_out_C", "in_A_out_C", "in_A_in_B")
         ])
 
         in_A_out_B.scale(2.59)
@@ -2003,18 +2004,18 @@ class VennDiagramProofByContradiction(Scene):
         R = np.sqrt(len(photons) / np.pi)
         pairs = []
         rejected = []
-        for x, y in it.product(*[range(-int(R)-1, int(R)+2)]*2):
+        for x, y in it.product(*[list(range(-int(R)-1, int(R)+2))]*2):
             if x**2 + y**2 < R**2:
                 pairs.append((x, y))
             else:
                 rejected.append((x, y))
         rejected.sort(
-            lambda (x1, y1), (x2, y2) : (x2**2 + y2**2) - (x1**2 + y1**2)
+            kay=lambda (x, y): (x**2 + y**2)
         )
         for i in range(len(photons) - len(pairs)):
             pairs.append(rejected.pop())
         for photon, (x, y) in zip(photons, pairs):
-            photon.scale_to_fit_width(0.7)
+            photon.set_width(0.7)
             photon.move_to(x*RIGHT + y*UP)
         return photons
 
@@ -2363,7 +2364,7 @@ class ReEmphasizeVennDiagram(VennDiagramProofByContradiction):
 
         def move_around(total_time):
             self.time
-            t_range = range(int(total_time/dt))
+            t_range = list(range(int(total_time/dt)))
             for x in ProgressDisplay(t_range):
                 self.time += dt
                 new_B_to_A = rotate_vector(B_to_A, self.time*A_freq)
@@ -2383,7 +2384,7 @@ class NoFirstMeasurementPreferenceBasedOnDirection(ShowVariousFilterPairs):
         "filter_x_coordinates" : [0, 0, 0],
         "pol_filter_configs" : [
             {"filter_angle" : angle}
-            for angle in 0, np.pi/8, np.pi/4
+            for angle in (0, np.pi/8, np.pi/4)
         ],
         "lines_depth" : 1.2,
         "lines_shift_vect" : SMALL_BUFF*OUT,
@@ -2452,19 +2453,3 @@ class NoFirstMeasurementPreferenceBasedOnDirection(ShowVariousFilterPairs):
         )
         self.add_foreground_mobject(all_pre_lines)
         self.wait(7)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

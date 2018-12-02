@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+
 import numpy as np
 import itertools as it
 from copy import deepcopy
@@ -7,7 +8,7 @@ import sys
 
 from big_ol_pile_of_manim_imports import *
 from script_wrapper import command_line_create_scene
-from generate_logo import LogoGeneration
+from .generate_logo import LogoGeneration
 
 POEM_LINES = """Fixed poorly in notation with that two,
 you shine so loud that you deserve a name.
@@ -58,7 +59,7 @@ FORMULAE = [
     # "\\sum_{n = 0}^\\infty \\frac{(-1)^n}{2n+1} = \\frac{\\pi}{4} \\\\",
 ]
 
-DIGITS = map(str, list("62831853071795864769"))
+DIGITS = list(map(str, list("62831853071795864769")))
 DIGITS[1] = "." + DIGITS[1] #2->.2
 
 BUFF = 1.0
@@ -83,7 +84,7 @@ class HappyTauDayWords(Scene):
         self.play(BlinkPiCreature(pi))
 
 class TauPoem(Scene):
-    args_list = map(lambda x : (x,), range(len(POEM_LINES)))
+    args_list = [(x,) for x in range(len(POEM_LINES))]
     @staticmethod
     def args_to_string(line_num, *ignore):
         return str(line_num)
@@ -279,7 +280,7 @@ class TauPoem(Scene):
     def line6(self):
         bubble = ThoughtBubble()
         self.play(ApplyFunction(
-            lambda p : 2 * p /  np.linalg.norm(p),
+            lambda p : 2 * p /  get_norm(p),
             bubble,
             rate_func = wiggle,
             run_time = 3.0,
@@ -290,7 +291,7 @@ class TauPoem(Scene):
         heart = ImageMobject("heart")
         heart.scale(0.5).shift(DOWN).set_color("red")
         for mob in bubble, heart:
-            mob.sort_points(np.linalg.norm)
+            mob.sort_points(get_norm)
 
         self.add(bubble)
         self.wait()
@@ -388,7 +389,7 @@ class TauPoem(Scene):
         grid.add(TexMobject("e^{ix}").shift(grid_center+UP+RIGHT))
         circle.set_color("white")
         tau_line = Line(
-            *[np.pi*interval_size*vect for vect in LEFT, RIGHT],
+            *[np.pi*interval_size*vect for vect in (LEFT, RIGHT)],
             density = 5*DEFAULT_POINT_DENSITY_1D
         )
         tau_line.set_color("red")
@@ -475,8 +476,9 @@ class TauPoem(Scene):
         ])
         for index in range(circle.points.shape[0]):
             circle.rgbas
-        def trianglify((x, y, z)):
-            norm = np.linalg.norm((x, y, z))
+        def trianglify(xxx_todo_changeme):
+            (x, y, z) = xxx_todo_changeme
+            norm = get_norm((x, y, z))
             comp = complex(x, y)*complex(0, 1)
             return (
                 norm * np.log(comp).imag,

@@ -9,6 +9,7 @@ from mobject.types.vectorized_mobject import VGroup
 from scene.scene import Scene
 
 
+# TODO, refactor this full scene
 class ComplexTransformationScene(Scene):
     CONFIG = {
         "plane_config": {},
@@ -51,7 +52,7 @@ class ComplexTransformationScene(Scene):
     def play(self, *animations, **kwargs):
         Scene.play(
             self,
-            *list(animations) + map(Animation, self.foreground_mobjects),
+            *list(animations) + list(map(Animation, self.foreground_mobjects)),
             **kwargs
         )
 

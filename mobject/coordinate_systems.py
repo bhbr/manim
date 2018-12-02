@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import numpy as np
 
@@ -26,15 +26,13 @@ class Axes(VGroup):
             "include_tip": True,
         },
         "x_axis_config": {},
-        "y_axis_config": {},
-        "z_axis_config": {},
+        "y_axis_config": {
+            "label_direction": LEFT,
+        },
         "x_min": -FRAME_X_RADIUS,
         "x_max": FRAME_X_RADIUS,
         "y_min": -FRAME_Y_RADIUS,
         "y_max": FRAME_Y_RADIUS,
-        "z_min": -3.5,
-        "z_max": 3.5,
-        "z_normal": DOWN,
         "default_num_graph_points": 100,
     }
 
@@ -44,32 +42,25 @@ class Axes(VGroup):
         self.y_axis = self.get_axis(self.y_min, self.y_max, self.y_axis_config)
         self.y_axis.rotate(np.pi / 2, about_point=ORIGIN)
         self.add(self.x_axis, self.y_axis)
-        if self.three_d:
-            self.z_axis = self.get_axis(
-                self.z_min, self.z_max, self.z_axis_config)
-            self.z_axis.rotate(-np.pi / 2, UP, about_point=ORIGIN)
-            self.z_axis.rotate(
-                angle_of_vector(self.z_normal), OUT,
-                about_point=ORIGIN
-            )
-            self.add(self.z_axis)
 
     def get_axis(self, min_val, max_val, extra_config):
         config = dict(self.number_line_config)
         config.update(extra_config)
         return NumberLine(x_min=min_val, x_max=max_val, **config)
 
-    def coords_to_point(self, x, y):
+    def coords_to_point(self, *coords):
         origin = self.x_axis.number_to_point(0)
-        x_axis_projection = self.x_axis.number_to_point(x)
-        y_axis_projection = self.y_axis.number_to_point(y)
-        return x_axis_projection + y_axis_projection - origin
+        result = np.array(origin)
+        for axis, coord in zip(self, coords):
+            result += (axis.number_to_point(coord) - origin)
+        return result
 
     def point_to_coords(self, point):
-        return (
-            self.x_axis.point_to_number(point),
-            self.y_axis.point_to_number(point),
-        )
+        return tuple([
+            axis.point_to_number(point)
+            for axis in self
+            if isinstance(axis, NumberLine)
+        ])
 
     def get_graph(
         self, function, num_graph_points=None,
@@ -100,8 +91,8 @@ class Axes(VGroup):
             while abs(lh - rh) > 0.001:
                 mh = np.mean([lh, rh])
                 hands = [lh, mh, rh]
-                points = map(graph.point_from_proportion, hands)
-                lx, mx, rx = map(self.x_axis.point_to_number, points)
+                points = list(map(graph.point_from_proportion, hands))
+                lx, mx, rx = list(map(self.x_axis.point_to_number, points))
                 if lx <= x and rx >= x:
                     if mx > x:
                         rh = mh
@@ -121,10 +112,52 @@ class ThreeDAxes(Axes):
     CONFIG = {
         "x_min": -5.5,
         "x_max": 5.5,
-        "y_min": -4.5,
-        "y_max": 4.5,
-        "three_d": True,
+        "y_min": -5.5,
+        "y_max": 5.5,
+        "z_axis_config": {},
+        "z_min": -3.5,
+        "z_max": 3.5,
+        "z_normal": DOWN,
+        "num_axis_pieces": 20,
+        "light_source": 9 * DOWN + 7 * LEFT + 10 * OUT,
     }
+
+    def __init__(self, **kwargs):
+        Axes.__init__(self, **kwargs)
+        z_axis = self.z_axis = self.get_axis(
+            self.z_min, self.z_max, self.z_axis_config
+        )
+        z_axis.rotate(-np.pi / 2, UP, about_point=ORIGIN)
+        z_axis.rotate(
+            angle_of_vector(self.z_normal), OUT,
+            about_point=ORIGIN
+        )
+        self.add(z_axis)
+
+        self.add_3d_pieces()
+        self.set_axis_shading()
+
+    def add_3d_pieces(self):
+        for axis in self:
+            axis.pieces = VGroup(
+                *axis.main_line.get_pieces(self.num_axis_pieces)
+            )
+            axis.add(axis.pieces)
+            axis.main_line.set_stroke(width=0, family=False)
+            axis.set_shade_in_3d(True)
+
+    def set_axis_shading(self):
+        def make_func(axis):
+            vect = self.light_source
+            return lambda: (
+                axis.get_edge_center(-vect),
+                axis.get_edge_center(vect),
+            )
+        for axis in self:
+            for submob in axis.family_members_with_points():
+                submob.get_gradient_start_and_end_points = make_func(axis)
+                submob.get_unit_normal = lambda a: np.ones(3)
+                submob.set_sheen(0.2)
 
 
 class NumberPlane(VMobject):
@@ -238,9 +271,9 @@ class NumberPlane(VMobject):
     def get_coordinate_labels(self, x_vals=None, y_vals=None):
         coordinate_labels = VGroup()
         if x_vals is None:
-            x_vals = range(-int(self.x_radius), int(self.x_radius) + 1)
+            x_vals = list(range(-int(self.x_radius), int(self.x_radius) + 1))
         if y_vals is None:
-            y_vals = range(-int(self.y_radius), int(self.y_radius) + 1)
+            y_vals = list(range(-int(self.y_radius), int(self.y_radius) + 1))
         for index, vals in enumerate([x_vals, y_vals]):
             num_pair = [0, 0]
             for val in vals:
@@ -250,7 +283,7 @@ class NumberPlane(VMobject):
                 point = self.coords_to_point(*num_pair)
                 num = TexMobject(str(val))
                 num.add_background_rectangle()
-                num.scale_to_fit_height(
+                num.set_height(
                     self.written_coordinate_height
                 )
                 num.next_to(point, DOWN + LEFT, buff=SMALL_BUFF)
@@ -329,14 +362,15 @@ class ComplexPlane(NumberPlane):
 
         result = VGroup()
         if len(numbers) == 0:
-            numbers = range(-int(self.x_radius), int(self.x_radius) + 1)
+            numbers = list(range(-int(self.x_radius), int(self.x_radius) + 1))
             numbers += [
                 complex(0, y)
                 for y in range(-int(self.y_radius), int(self.y_radius) + 1)
+                if y != 0
             ]
         for number in numbers:
-            if number == complex(0, 0):
-                continue
+            # if number == complex(0, 0):
+            #     continue
             point = self.number_to_point(number)
             num_str = str(number).replace("j", "i")
             if num_str.startswith("0"):
@@ -345,7 +379,7 @@ class ComplexPlane(NumberPlane):
                 num_str = num_str.replace("1", "")
             num_mob = TexMobject(num_str)
             num_mob.add_background_rectangle()
-            num_mob.scale_to_fit_height(self.written_coordinate_height)
+            num_mob.set_height(self.written_coordinate_height)
             num_mob.next_to(point, DOWN + LEFT, SMALL_BUFF)
             result.add(num_mob)
         self.coordinate_labels = result

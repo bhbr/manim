@@ -13,6 +13,7 @@ Note: One should NOT import from this file for main library code, it is meant on
 as a convenience for scripts creating scenes for videos.
 """
 
+
 from constants import *
 
 from animation.animation import *
@@ -36,6 +37,7 @@ from continual_animation.from_animation import *
 from continual_animation.numbers import *
 from continual_animation.update import *
 
+from mobject.coordinate_systems import *
 from mobject.frame import *
 from mobject.functions import *
 from mobject.geometry import *
@@ -49,10 +51,12 @@ from mobject.svg.brace import *
 from mobject.svg.drawings import *
 from mobject.svg.svg_mobject import *
 from mobject.svg.tex_mobject import *
+from mobject.three_d_utils import *
 from mobject.three_dimensions import *
 from mobject.types.image_mobject import *
 from mobject.types.point_cloud_mobject import *
 from mobject.types.vectorized_mobject import *
+from mobject.updater import *
 from mobject.value_tracker import *
 
 from for_3b1b_videos.common_scenes import *
@@ -103,6 +107,7 @@ import random
 import re
 import string
 import sys
+import math
 
 from PIL import Image
 from colour import Color

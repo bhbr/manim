@@ -1,5 +1,5 @@
 from big_ol_pile_of_manim_imports import *
-from hilbert.curves import *
+from old_projects.hilbert.curves import *
 
 class Intro(TransformOverIncreasingOrders):
     @staticmethod
@@ -132,12 +132,12 @@ class SurpriseFractal(Intro):
 
 class IntroduceKoch(Intro):
     def construct(self):
-        words = map(TextMobject, [
+        words = list(map(TextMobject, [
             "This is another famous fractal.",
             "The ``Koch Snowflake''",
             "Let's finish things off by seeing how to turn \
             this into a space-filling curve"
-        ])
+        ]))
         for text in words:
             text.to_edge(UP)
 
@@ -185,12 +185,12 @@ class FromKochToSpaceFilling(Scene):
 
 
     def revisit_koch(self):
-        words = map(TextMobject, [
+        words = list(map(TextMobject, [
             "First, look at how one section of this curve is made.",
             "This pattern of four lines is the ``seed''",
             "With each iteration, every straight line is \
             replaced with an appropriately small copy of the seed",
-        ])
+        ]))
         for text in words:
             text.to_edge(UP)
 
@@ -228,7 +228,7 @@ class FromKochToSpaceFilling(Scene):
         words.to_edge(UP)
         koch, sharper_koch, duller_koch = curves = [
             CurveClass(order = 1)
-            for CurveClass in StraightKoch, SharperKoch, DullerKoch
+            for CurveClass in (StraightKoch, SharperKoch, DullerKoch)
         ]
         arcs = [
             Arc(
@@ -266,21 +266,21 @@ class FromKochToSpaceFilling(Scene):
         seed.shift(3*LEFT+2*DOWN)
         fractal = TextMobject("Fractal")
         fractal.shift(3*RIGHT+2*DOWN)
-        words = map(TextMobject, [
+        words = list(map(TextMobject, [
             "A sharper angle results in a richer curve",
             "A more obtuse angle gives a sparser curve",
             "And as the angle approaches 0\\dots",
             "We have a new space-filling curve."
-        ])
+        ]))
         for text in words:
             text.to_edge(UP)
         sharper, duller, space_filling = [
             CurveClass(order = 1).shift(3*LEFT)
-            for CurveClass in SharperKoch, DullerKoch, SpaceFillingKoch
+            for CurveClass in (SharperKoch, DullerKoch, SpaceFillingKoch)
         ]
         shaper_f, duller_f, space_filling_f = [
             CurveClass(order = self.max_order).shift(3*RIGHT)
-            for CurveClass in SharperKoch, DullerKoch, SpaceFillingKoch
+            for CurveClass in (SharperKoch, DullerKoch, SpaceFillingKoch)
         ]
 
         self.add(words[0])

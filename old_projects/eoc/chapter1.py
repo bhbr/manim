@@ -221,7 +221,7 @@ class Introduction(TeacherStudentsScene):
         this_video.save_state()
         this_video.set_fill(opacity = 0)
         this_video.center()
-        this_video.scale_to_fit_height(FRAME_HEIGHT)
+        this_video.set_height(FRAME_HEIGHT)
         self.this_video = this_video
 
 
@@ -381,11 +381,11 @@ class Introduction(TeacherStudentsScene):
 class PreviewFrame(Scene):
     def construct(self):
         frame = Rectangle(height = 9, width = 16, color = WHITE)
-        frame.scale_to_fit_height(1.5*FRAME_Y_RADIUS)
+        frame.set_height(1.5*FRAME_Y_RADIUS)
 
         colors = iter(color_gradient([BLUE, YELLOW], 3))
         titles = [
-            TextMobject("Chapter %d:"%d, s).to_edge(UP).set_color(colors.next())
+            TextMobject("Chapter %d:"%d, s).to_edge(UP).set_color(next(colors))
             for d, s in [
                 (3, "Derivative formulas through geometry"),
                 (4, "Chain rule, product rule, etc."),
@@ -483,7 +483,7 @@ class ProductRuleDiagram(Scene):
         self.play(MoveToTarget(fg_group))
         self.play(*[
             mob.restore
-            for mob in df_brace, df_label, dg_brace, dg_label
+            for mob in (df_brace, df_label, dg_brace, dg_label)
         ] + [
             ReplacementTransform(d_rect.line, d_rect)
             for d_rect in d_rects
@@ -521,11 +521,11 @@ class ProductRuleDiagram(Scene):
                 (g_label, "g"),
                 (df_label, "df"),
             ]
-            for alpha in [alpha_iter.next()]
+            for alpha in [next(alpha_iter)]
         ]+[
             Write(VGroup(*it.chain(*[
                 deriv.get_parts_by_tex(tex, substring = False)
-                for tex in "d(", ")", "=", "\\cdot", "+"
+                for tex in ("d(", ")", "=", "\\cdot", "+")
             ])))
         ], run_time = 3)
         self.wait()
@@ -810,7 +810,7 @@ class ApproximateOneRing(CircleScene, ReconfigurableScene):
             self.pi_creature.change_mode, "happy"
         )
         self.wait()
-        self.play(*map(FadeOut, [trapezoid, strike]))
+        self.play(*list(map(FadeOut, [trapezoid, strike])))
 
         self.unwrapped_ring = ring
 
@@ -820,7 +820,7 @@ class ApproximateOneRing(CircleScene, ReconfigurableScene):
                 self.unwrapped_ring, vect, buff = SMALL_BUFF,
                 min_num_quads = 2,
             )
-            for vect in UP, LEFT
+            for vect in (UP, LEFT)
         ]
         top_brace.scale_in_place(self.ring.R/(self.ring.R+self.dR))
         side_brace.set_stroke(WHITE, 0.5)
@@ -943,12 +943,12 @@ class GraphRectangles(CircleScene, GraphScene):
         "x_min" : 0,
         "x_max" : 4,
         "x_axis_width" : 7,
-        "x_labeled_nums" : range(5),
+        "x_labeled_nums" : list(range(5)),
         "x_axis_label" : "$r$",
         "y_min" : 0,
         "y_max" : 20,
         "y_tick_frequency" : 2.5,
-        "y_labeled_nums" : range(5, 25, 5),
+        "y_labeled_nums" : list(range(5, 25, 5)),
         "y_axis_label" : "",
         "exclude_zero_label" : False,
         "num_rings_in_ring_sum_start" : 3,
@@ -1041,7 +1041,7 @@ class GraphRectangles(CircleScene, GraphScene):
                 color = YELLOW,
                 tip_length = 0.15
             )
-            for tick in r_ticks[0], r_ticks[-1]
+            for tick in (r_ticks[0], r_ticks[-1])
         ])
         first_tick = r_ticks[0].copy()
         moving_arrow = arrows[0].copy()
@@ -1078,7 +1078,7 @@ class GraphRectangles(CircleScene, GraphScene):
         self.wait()
         self.play(FadeIn(dr_group))
         self.wait()
-        self.play(*map(FadeOut, [moving_arrow, values_of_r]))
+        self.play(*list(map(FadeOut, [moving_arrow, values_of_r])))
 
         self.x_axis.add(r_ticks)
         self.r_ticks = r_ticks
@@ -1094,7 +1094,7 @@ class GraphRectangles(CircleScene, GraphScene):
                 start_color = self.rings[0].get_fill_color(),
                 end_color = self.rings[-1].get_fill_color(),
             )
-            for g in graph, flat_graph
+            for g in (graph, flat_graph)
         ]
         self.graph, self.flat_rects = graph, flat_rects
 
@@ -1132,7 +1132,7 @@ class GraphRectangles(CircleScene, GraphScene):
             ring.target = target
             ring.original_ring = ring.copy()
 
-        foreground_animations = map(Animation, [self.x_axis, self.area_label])
+        foreground_animations = list(map(Animation, [self.x_axis, self.area_label]))
         example_ring = transformed_rings[2]
 
         self.play(
@@ -1240,7 +1240,7 @@ class GraphRectangles(CircleScene, GraphScene):
                 self.rects, self.flat_rects,
                 np.linspace(0, 0.5, len(self.rects))
             )
-        ] + map(Animation, [self.x_axis, self.graph])
+        ] + list(map(Animation, [self.x_axis, self.graph]))
         )
         self.wait(2)
 
@@ -1279,7 +1279,7 @@ class GraphRectangles(CircleScene, GraphScene):
             for n in range(1, 5)
         ]
 
-        self.play(*map(FadeOut, [self.r_ticks, self.dr_group]))
+        self.play(*list(map(FadeOut, [self.r_ticks, self.dr_group])))
         self.x_axis.remove(self.r_ticks, *self.r_ticks)
         for new_rects in thinner_rects_list:
             self.play(
@@ -1303,7 +1303,7 @@ class GraphRectangles(CircleScene, GraphScene):
     def compute_area_under_graph(self):
         formula, formula_with_R = formulas = [
             self.get_area_formula(R)
-            for R in "3", "R"
+            for R in ("3", "R")
         ]
         for mob in formulas:
             mob.to_corner(UP+RIGHT, buff = MED_SMALL_BUFF)
@@ -1339,11 +1339,11 @@ class GraphRectangles(CircleScene, GraphScene):
         self.play(Write(formula.bottom_line))
         self.wait(2)
 
-        self.play(*map(FadeOut, [
+        self.play(*list(map(FadeOut, [
             self.ghost_rings,
             self.ring_sum.tex_mobs
-        ]))
-        self.play(*map(FadeIn, [fresh_rings, self.radius_group]))
+        ])))
+        self.play(*list(map(FadeIn, [fresh_rings, self.radius_group])))
         self.wait()
         self.play(
             Transform(formula, formula_with_R),
@@ -1410,7 +1410,7 @@ class GraphRectangles(CircleScene, GraphScene):
 
         arranged_group.add(last_ring.target)
         arranged_group.arrange_submobjects(DOWN, buff = SMALL_BUFF)
-        arranged_group.scale_to_fit_height(FRAME_HEIGHT-1)
+        arranged_group.set_height(FRAME_HEIGHT-1)
         arranged_group.to_corner(DOWN+LEFT, buff = MED_SMALL_BUFF)
         for mob in tex_mobs:
             mob.scale_in_place(0.7)
@@ -1534,10 +1534,7 @@ class RecapCircleSolution(GraphRectangles, ReconfigurableScene):
         self.integral_condition = integral_condition
 
     def show_sum(self):
-        visible_rings = filter(
-            lambda ring : ring.get_fill_opacity() > 0,
-            self.rings
-        )
+        visible_rings = [ring for ring in self.rings if ring.get_fill_opacity() > 0]
         radii = self.dR*np.arange(len(visible_rings))
         radii[-1] = 3-self.dR
 
@@ -1656,13 +1653,13 @@ class RecapCircleSolution(GraphRectangles, ReconfigurableScene):
 
         self.play(
             Write(self.y_axis, run_time = 2),
-            *map(FadeOut, [
+            *list(map(FadeOut, [
                 self.approximations,
                 self.area_label,
                 self.area_arrows,
                 self.dr_brace_group,
                 self.r_ticks,
-            ])
+            ]))
         )
         self.play(
             ReplacementTransform(
@@ -1722,7 +1719,7 @@ class RecapCircleSolution(GraphRectangles, ReconfigurableScene):
             self.integral_condition[0][0],
             words[0]
         )
-        arc.scale_to_fit_height(
+        arc.set_height(
             arc_next_to_group.get_height()-MED_LARGE_BUFF
         )
         arc.next_to(arc_next_to_group, LEFT, SMALL_BUFF)
@@ -1952,11 +1949,11 @@ class MathematicianPonderingAreaUnderDifferentCurves(PiCreatureScene):
 class AreaUnderParabola(GraphScene):
     CONFIG = {
         "x_max" : 4,
-        "x_labeled_nums" : range(-1, 5),
+        "x_labeled_nums" : list(range(-1, 5)),
         "y_min" : 0,
         "y_max" : 15,
         "y_tick_frequency" : 2.5,
-        "y_labeled_nums" : range(5, 20, 5),
+        "y_labeled_nums" : list(range(5, 20, 5)),
         "n_rect_iterations" : 6,
         "default_right_x" : 3,
         "func" : lambda x : x**2,
@@ -2009,7 +2006,7 @@ class AreaUnderParabola(GraphScene):
                 rate_func = smooth,
                 submobject_mode = "lagged_start",
             ),
-            *map(Animation, foreground_mobjects)
+            *list(map(Animation, foreground_mobjects))
         )
         self.wait()
         for new_rects in rect_lists[1:]:
@@ -2018,7 +2015,7 @@ class AreaUnderParabola(GraphScene):
                     rects, new_rects,
                     submobject_mode = "lagged_start",
                 ), 
-                *map(Animation, foreground_mobjects)
+                *list(map(Animation, foreground_mobjects))
             )
         self.wait()
 
@@ -2038,7 +2035,7 @@ class AreaUnderParabola(GraphScene):
                 FRAME_HEIGHT*UP, ORIGIN,
                 color = RED
             ).move_to(self.coords_to_point(x, 0), DOWN)
-            for x in 0, self.default_right_x
+            for x in (0, self.default_right_x)
         ])
 
         self.play(
@@ -2078,7 +2075,7 @@ class AreaUnderParabola(GraphScene):
             fill_color = WHITE,
             fill_opacity = 1,
         )
-        triangle.scale_to_fit_height(0.25)
+        triangle.set_height(0.25)
         triangle.move_to(self.v_lines[1].get_bottom(), UP)
         x_label = TexMobject("x")
         x_label.next_to(triangle, DOWN)
@@ -2147,7 +2144,7 @@ class AreaUnderParabola(GraphScene):
                 group, update_group,
                 **kwargs
             ),
-            *map(Animation, self.foreground_mobjects)
+            *list(map(Animation, self.foreground_mobjects))
         )
 
 class WhoCaresAboutArea(TeacherStudentsScene):
@@ -2226,7 +2223,7 @@ class PlayingTowardsDADX(AreaUnderParabola, ReconfigurableScene):
         self.move_right_point_to(curr_x + self.deriv_dx)
         self.play(
             FadeIn(shadow_rects), 
-            *map(Animation, self.foreground_mobjects)
+            *list(map(Animation, self.foreground_mobjects))
         )
 
         self.shadow_rects = shadow_rects
@@ -2279,7 +2276,7 @@ class PlayingTowardsDADX(AreaUnderParabola, ReconfigurableScene):
         self.play(
             ReplacementTransform(dA_label[0].copy(), difference_in_area[0]),
             ReplacementTransform(dA_label[1].copy(), difference_in_area[2]),
-            *map(FadeIn, [difference_in_area[1], difference_in_area[3]])
+            *list(map(FadeIn, [difference_in_area[1], difference_in_area[3]]))
         )
         self.wait(2)
         self.play(FadeIn(dA_rect), Animation(dA_arrow))
@@ -2329,15 +2326,15 @@ class PlayingTowardsDADX(AreaUnderParabola, ReconfigurableScene):
                 equation.get_part_by_tex(tex),
                 run_time = 2
             )
-            for mob, tex in (x_squared, f_tex), (dx, "dx"), (dA, "dA")
+            for mob, tex in [(x_squared, f_tex), (dx, "dx"), (dA, "dA")]
         ])
         self.play(Write(equation.get_part_by_tex("approx")))
         self.wait()
         for tex, mob in (f_tex, x_squared), ("dx", dx):
-            self.play(*map(Indicate, [
+            self.play(*list(map(Indicate, [
                 equation.get_part_by_tex(tex),
                 mob
-            ]))
+            ])))
             self.wait(2)
         self.play(*[
             ReplacementTransform(
@@ -2345,7 +2342,7 @@ class PlayingTowardsDADX(AreaUnderParabola, ReconfigurableScene):
                 deriv_equation.get_part_by_tex(tex),
                 run_time = 2,
             )
-            for tex in "dA", "approx", f_tex, "dx"
+            for tex in ("dA", "approx", f_tex, "dx")
         ] + [
             Write(deriv_equation.get_part_by_tex("over"))
         ])
@@ -2364,7 +2361,7 @@ class PlayingTowardsDADX(AreaUnderParabola, ReconfigurableScene):
             Circle(color = color).replace(
                 mob, stretch = True
             ).scale_in_place(1.5)
-            for mob, color in (self.A_func, RED), (self.deriv_equation, GREEN)
+            for mob, color in [(self.A_func, RED), (self.deriv_equation, GREEN)]
         ]
         q_marks = TexMobject("???")
         q_marks.next_to(A_circle, UP)
@@ -2387,17 +2384,17 @@ class PlayingTowardsDADX(AreaUnderParabola, ReconfigurableScene):
         )
         self.play(Blink(randy))
         self.wait()
-        self.play(*map(FadeOut, [randy, q_marks, dA_circle]))
+        self.play(*list(map(FadeOut, [randy, q_marks, dA_circle])))
 
     def write_example_inputs(self):
         d = self.default_right_x
         three = TexMobject("x =", "%d"%d)
         three_plus_dx = TexMobject("x = ", "%d.001"%d)
-        labels_lines_vects = zip(
+        labels_lines_vects = list(zip(
             [three, three_plus_dx],
             self.right_v_lines,
             [LEFT, RIGHT]
-        )
+        ))
 
         for label, line, vect in labels_lines_vects:
             point = line.get_bottom()
@@ -2568,7 +2565,7 @@ class AlternateAreaUnderCurve(PlayingTowardsDADX):
         )
         dx_to_zero = self.dx_to_zero_words[1]
 
-        self.play(*map(FadeIn, [box, brace]))
+        self.play(*list(map(FadeIn, [box, brace])))
         self.wait()
         self.play(
             FadeOut(faders),
@@ -2587,7 +2584,7 @@ class AlternateAreaUnderCurve(PlayingTowardsDADX):
 class NextVideoWrapper(Scene):
     def construct(self):
         rect = Rectangle(height = 9, width = 16)
-        rect.scale_to_fit_height(1.5*FRAME_Y_RADIUS)
+        rect.set_height(1.5*FRAME_Y_RADIUS)
         titles = [
             TextMobject("Chapter %d:"%d, s)
             for d, s in [
@@ -2781,7 +2778,7 @@ class Thumbnail(AlternateAreaUnderCurve):
             Essence of
             calculus
         """)
-        words.scale_to_fit_width(9)
+        words.set_width(9)
         words.to_edge(UP)
 
         self.add(graph, rects, words)

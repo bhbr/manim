@@ -9,7 +9,7 @@ class OpeningQuote(Scene):
             "2x3 matrix.",
             "Some of you, to my great amusement, actually tried to do this.''" 
         )
-        words.scale_to_fit_width(FRAME_WIDTH - 2)
+        words.set_width(FRAME_WIDTH - 2)
         words.to_edge(UP)
         words[1].set_color(GREEN)
         author = TextMobject("-(Via mathprofessorquotes.com, no name listed)")
@@ -37,7 +37,7 @@ class ColumnsRepresentBasisVectors(Scene):
         matrix = Matrix([[3, 1], [4, 1], [5, 9]])
         i_hat_words, j_hat_words = [
             TextMobject("Where $\\hat{\\%smath}$ lands"%char)
-            for char in "i", "j"
+            for char in ("i", "j")
         ]
         i_hat_words.set_color(X_COLOR)
         i_hat_words.next_to(ORIGIN, LEFT).to_edge(UP)
@@ -77,7 +77,7 @@ class ColumnsRepresentBasisVectors(Scene):
         self.play(
             ApplyFunction(
                 lambda m : bubble.position_mobject_inside(
-                    m.scale_to_fit_height(2.5)
+                    m.set_height(2.5)
                 ),
                 everything
             ),
@@ -137,7 +137,7 @@ class PlaneStartState(LinearTransformationScene):
     def construct(self):
         self.add_title("Input space")
         labels = self.get_basis_vector_labels()
-        self.play(*map(Write, labels))
+        self.play(*list(map(Write, labels)))
         self.wait()
 
 class OutputIn3dWords(Scene):
@@ -164,9 +164,9 @@ class DescribeColumnsInSpecificTransformation(Scene):
             [-1, 1],
             [-2, 1],
         ])
-        matrix.set_color_columns(X_COLOR, Y_COLOR)
+        matrix.set_column_colors(X_COLOR, Y_COLOR)
         mob_matrix = matrix.get_mob_matrix()
-        i_col, j_col = [VMobject(*mob_matrix[:,i]) for i in 0, 1]
+        i_col, j_col = [VMobject(*mob_matrix[:,i]) for i in (0, 1)]
         for col, char, vect in zip([i_col, j_col], ["i", "j"], [UP, DOWN]):
             color = col[0].get_color()
             col.words = TextMobject("Where $\\hat\\%smath$ lands"%char)
@@ -195,7 +195,7 @@ class CountRowsAndColumns(Scene):
             [-1, 1],
             [-2, 1],
         ])
-        matrix.set_color_columns(X_COLOR, Y_COLOR)
+        matrix.set_column_colors(X_COLOR, Y_COLOR)
         rows_brace = Brace(matrix, LEFT)
         rows_words = rows_brace.get_text("3", "rows")
         rows_words.set_color(PINK)
@@ -229,7 +229,7 @@ class WriteColumnSpaceDefinition(Scene):
             [-1, 1],
             [-2, 1],
         ])
-        matrix.set_color_columns(X_COLOR, Y_COLOR)
+        matrix.set_column_colors(X_COLOR, Y_COLOR)
 
         brace = Brace(matrix)
         words = VMobject(
@@ -276,7 +276,7 @@ class MatrixInTheWild(Scene):
             ShowCreation(bubble),
             randy.change_mode, "pondering"
         )
-        # self.play(matrix.set_color_columns, X_COLOR, Y_COLOR)
+        # self.play(matrix.set_column_colors, X_COLOR, Y_COLOR)
         self.wait()
         for x in range(3):
             self.play(Blink(randy))
@@ -309,7 +309,7 @@ class MatrixInTheWild(Scene):
         self.play(
             GrowFromCenter(top_brace),
             Write(top_words),
-            matrix.set_color_columns, X_COLOR, Y_COLOR, Z_COLOR
+            matrix.set_column_colors, X_COLOR, Y_COLOR, Z_COLOR
         )
         self.play(randy.change_mode, "happy")
         self.play(
@@ -440,12 +440,12 @@ class TwoDTo1DTransform(LinearTransformationScene):
         self.remove(plane_words)
         mobjects = self.get_mobjects()
         self.play(
-            *map(FadeOut, mobjects) + [ShowCreation(line)]
+            *list(map(FadeOut, mobjects)) + [ShowCreation(line)]
         )
         self.play(Write(line_words))
         self.wait()
         self.remove(line_words)
-        self.play(*map(FadeIn, mobjects))
+        self.play(*list(map(FadeIn, mobjects)))
         self.apply_transposed_matrix(self.t_matrix)
         self.play(Write(VMobject(*line.get_number_mobjects())))
         self.wait()
@@ -513,10 +513,10 @@ class NextVideo(Scene):
         title = TextMobject("""
             Next video: Dot products and duality
         """)
-        title.scale_to_fit_width(FRAME_WIDTH - 2)
+        title.set_width(FRAME_WIDTH - 2)
         title.to_edge(UP)
         rect = Rectangle(width = 16, height = 9, color = BLUE)
-        rect.scale_to_fit_height(6)
+        rect.set_height(6)
         rect.next_to(title, DOWN)
 
         self.add(title)
@@ -571,8 +571,8 @@ class DotProductPreview(VectorScene):
     def project_w(self):
         dot_product = np.dot(self.v.get_end(), self.w.get_end())
         v_norm, w_norm = [
-            np.linalg.norm(vect.get_end())
-            for vect in self.v, self.w
+            get_norm(vect.get_end())
+            for vect in (self.v, self.w)
         ]
         projected_w = Vector(
             self.v.get_end()*dot_product/(v_norm**2),
@@ -595,7 +595,7 @@ class DotProductPreview(VectorScene):
                 Line(ORIGIN, norm*RIGHT), 
                 UP
             )
-            for norm in 1, self.v.get_length(), dot_product
+            for norm in (1, self.v.get_length(), dot_product)
         ]
         length_texs = list(it.starmap(TexMobject, [
             ("1",),

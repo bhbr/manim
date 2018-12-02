@@ -63,7 +63,7 @@ class CountingScene(Scene):
             )
             for point in self.get_template_configuration(place)
         ])
-        dots.scale_to_fit_height(self.dot_configuration_height)
+        dots.set_height(self.dot_configuration_height)
         return dots
 
     def add_configuration(self):
@@ -104,7 +104,7 @@ class CountingScene(Scene):
                 added_anims += self.get_digit_increment_animations()
                 first_move = False
             moving_dot.target.replace(
-                self.dot_template_iterators[place].next()
+                next(self.dot_template_iterators[place])
             )
             self.play(MoveToTarget(moving_dot), *added_anims, **kwargs)
             self.curr_configurations[place].add(moving_dot)

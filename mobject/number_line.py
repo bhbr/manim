@@ -1,14 +1,17 @@
-from __future__ import absolute_import
+
 
 from constants import *
 
-from mobject.svg.tex_mobject import TexMobject
+from mobject.numbers import DecimalNumber
 from mobject.types.vectorized_mobject import VGroup
 from mobject.types.vectorized_mobject import VMobject
 from mobject.geometry import Arrow
 from mobject.geometry import Line
 from utils.bezier import interpolate
 from utils.config_ops import digest_config
+from utils.space_ops import get_norm
+from utils.space_ops import normalize
+from utils.simple_functions import fdiv
 
 
 class NumberLine(VMobject):
@@ -30,6 +33,9 @@ class NumberLine(VMobject):
         "line_to_number_buff": MED_SMALL_BUFF,
         "include_tip": False,
         "propagate_style_to_family": True,
+        "decimal_number_config": {
+            "num_decimal_places": 0,
+        }
     }
 
     def __init__(self, **kwargs):
@@ -95,16 +101,18 @@ class NumberLine(VMobject):
         )
 
     def point_to_number(self, point):
-        left_point, right_point = self.main_line.get_start_and_end()
-        full_vect = right_point - left_point
+        start_point, end_point = self.main_line.get_start_and_end()
+        full_vect = end_point - start_point
+        unit_vect = normalize(full_vect)
 
-        def distance_from_left(p):
-            return np.dot(p - left_point, full_vect) / np.linalg.norm(full_vect)
+        def distance_from_start(p):
+            return np.dot(p - start_point, unit_vect)
 
-        return interpolate(
-            self.x_min, self.x_max,
-            distance_from_left(point) / distance_from_left(right_point)
+        proportion = fdiv(
+            distance_from_start(point),
+            distance_from_start(end_point)
         )
+        return interpolate(self.x_min, self.x_max, proportion)
 
     def default_numbers_to_display(self):
         if self.numbers_to_show is not None:
@@ -115,11 +123,11 @@ class NumberLine(VMobject):
         # TODO, handle decimals
         if len(numbers) == 0:
             numbers = self.default_numbers_to_display()
-        if "force_integers" in kwargs and kwargs["force_integers"]:
-            numbers = map(int, numbers)
         result = VGroup()
         for number in numbers:
-            mob = TexMobject(str(number))
+            mob = DecimalNumber(
+                number, **self.decimal_number_config
+            )
             mob.scale(self.number_scale_val)
             mob.next_to(
                 self.number_to_point(number),
@@ -141,9 +149,10 @@ class NumberLine(VMobject):
 
     def add_tip(self):
         start, end = self.main_line.get_start_and_end()
-        vect = (end - start) / np.linalg.norm(end - start)
+        vect = (end - start) / get_norm(end - start)
         arrow = Arrow(start, end + MED_SMALL_BUFF * vect, buff=0)
         tip = arrow.tip
+        tip.set_stroke(width=self.get_stroke_width())
         tip.set_color(self.color)
         self.tip = tip
         self.add(tip)

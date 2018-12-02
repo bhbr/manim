@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import numpy as np
 
@@ -30,7 +30,7 @@ class AbstractImageMobject(Mobject):
         # Likely to be implemented in subclasses, but no obgligation
         pass
 
-    def init_points(self):
+    def reset_points(self):
         # Corresponding corners of image are fixed to these 3 points
         self.points = np.array([
             UP + LEFT,
@@ -96,7 +96,7 @@ class ImageMobject(AbstractImageMobject):
         self.pixel_array[:, :, 3] = int(255 * alpha)
         return self
 
-    def fade(self, darkness=0.5):
+    def fade_no_recurse(self, darkness=0.5):
         self.set_opacity(1 - darkness)
         return self
 

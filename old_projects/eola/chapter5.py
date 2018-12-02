@@ -1,5 +1,5 @@
 from big_ol_pile_of_manim_imports import *
-from eola.chapter3 import MatrixVectorMultiplicationAbstract
+from old_projects.eola.chapter3 import MatrixVectorMultiplicationAbstract
 
 
 class Blob(Circle):
@@ -17,17 +17,14 @@ class Blob(Circle):
         self.apply_complex_function(
             lambda z : z*(1+self.random_nudge_size*(random.random()-0.5))
         )
-        self.scale_to_fit_height(self.height).center()
+        self.set_height(self.height).center()
 
     def probably_contains(self, point):
         border_points = np.array(self.get_anchors_and_handles()[0])
-        distances = map(lambda p : np.linalg.norm(p-point), border_points)
+        distances = [get_norm(p-point) for p in border_points]
         min3 = border_points[np.argsort(distances)[:3]]
         center_direction = self.get_center() - point
-        in_center_direction = map(
-            lambda p : np.dot(p-point, center_direction) > 0, 
-            min3
-        )
+        in_center_direction = [np.dot(p-point, center_direction) > 0 for p in min3]
         return sum(in_center_direction) <= 2
             
 class RightHand(VMobject):
@@ -38,7 +35,7 @@ class RightHand(VMobject):
         self.outline.set_stroke(color = WHITE, width = 5)
         self.inlines.set_stroke(color = DARK_GREY, width = 3)
         VMobject.__init__(self, self.outline, self.inlines)
-        self.center().scale_to_fit_height(3)
+        self.center().set_height(3)
 
 class OpeningQuote(Scene):
     def construct(self):
@@ -49,7 +46,7 @@ class OpeningQuote(Scene):
             "numbers.",
             "''",
         ], arg_separator = "")
-        # words.scale_to_fit_width(FRAME_WIDTH - 2)
+        # words.set_width(FRAME_WIDTH - 2)
         words.to_edge(UP)
         words.split()[1].set_color(BLUE)
         words.split()[3].set_color(GREEN)
@@ -157,7 +154,7 @@ class DiagonalExample(LinearTransformationScene):
     def construct(self):
         self.setup()
         matrix = Matrix(np.array(self.transposed_matrix).transpose())
-        matrix.set_color_columns(X_COLOR, Y_COLOR)
+        matrix.set_column_colors(X_COLOR, Y_COLOR)
         matrix.next_to(ORIGIN, LEFT).to_edge(UP)
         matrix_background = BackgroundRectangle(matrix)
         self.play(ShowCreation(matrix_background), Write(matrix))
@@ -184,7 +181,7 @@ class DiagonalExample(LinearTransformationScene):
 
             width_target, height_target = width.copy(), height.copy()
             det = np.linalg.det(self.transposed_matrix)
-            times, eq_det = map(TexMobject, ["\\times", "=%d"%det])
+            times, eq_det = list(map(TexMobject, ["\\times", "=%d"%det]))
             words = TextMobject("New area $=$")
             equation = VMobject(
                 words, width_target, times, height_target, eq_det
@@ -198,7 +195,7 @@ class DiagonalExample(LinearTransformationScene):
                 ShowCreation(background_rect),                
                 Transform(width.copy(), width_target),
                 Transform(height.copy(), height_target),
-                *map(Write, [words, times, eq_det])
+                *list(map(Write, [words, times, eq_det]))
             )
             self.wait()
 
@@ -356,7 +353,7 @@ class NameDeterminant(LinearTransformationScene):
         self.apply_transposed_matrix(self.t_matrix)
         self.wait()
         det_mob_copy = area_label.split()[0].copy()
-        new_det_mob = det_mob_copy.copy().scale_to_fit_height(
+        new_det_mob = det_mob_copy.copy().set_height(
             det_text.split()[0].get_height()
         )
         new_det_mob.next_to(det_text, RIGHT, buff = 0.2)
@@ -369,7 +366,7 @@ class NameDeterminant(LinearTransformationScene):
 
     def get_matrix(self):
         matrix = Matrix(np.array(self.t_matrix).transpose())
-        matrix.set_color_columns(X_COLOR, Y_COLOR)
+        matrix.set_column_colors(X_COLOR, Y_COLOR)
         matrix.next_to(self.title, DOWN, buff = 0.5)
         matrix.shift(2*LEFT)
         matrix_background = BackgroundRectangle(matrix)
@@ -412,7 +409,7 @@ class NextFewVideos(Scene):
     def construct(self):
         icon = SVGMobject("video_icon")
         icon.center()
-        icon.scale_to_fit_width(FRAME_WIDTH/12.)
+        icon.set_width(FRAME_WIDTH/12.)
         icon.set_stroke(color = WHITE, width = 0)
         icon.set_fill(WHITE, opacity = 1)
         icons = VMobject(*[icon.copy() for x in range(10)])
@@ -449,7 +446,7 @@ class NegativeDeterminant(Scene):
     def construct(self):
         numerical_matrix = [[1, 2], [3, 4]]
         matrix = Matrix(numerical_matrix)
-        matrix.set_color_columns(X_COLOR, Y_COLOR)
+        matrix.set_column_colors(X_COLOR, Y_COLOR)
         det_text = get_det_text(matrix, np.linalg.det(numerical_matrix))
         words = TextMobject("""
             How can you scale area
@@ -605,7 +602,7 @@ class WriteNegativeDeterminant(NegativeDeterminantTransformation):
         matrix = Matrix(np.array(self.t_matrix).transpose())
         matrix.next_to(ORIGIN, LEFT)
         matrix.to_edge(UP)
-        matrix.set_color_columns(X_COLOR, Y_COLOR)
+        matrix.set_column_colors(X_COLOR, Y_COLOR)
 
         det_text = get_det_text(
             matrix, determinant = np.linalg.det(self.t_matrix)
@@ -723,7 +720,7 @@ class DeterminantIsVolumeOfParallelepiped(Scene):
     def construct(self):
         matrix = Matrix([[1, 0, 0.5], [0.5, 1, 0], [1, 0, 1]])
         matrix.shift(3*LEFT)
-        matrix.set_color_columns(X_COLOR, Y_COLOR, Z_COLOR)
+        matrix.set_column_colors(X_COLOR, Y_COLOR, Z_COLOR)
         det_text = get_det_text(matrix)
         eq = TexMobject("=")
         eq.next_to(det_text, RIGHT)
@@ -752,7 +749,7 @@ class WriteZeroDeterminant(Scene):
     def construct(self):
         matrix = Matrix([[1, 0, 1], [0.5, 1, 1.5], [1, 0, 1]])
         matrix.shift(2*LEFT)
-        matrix.set_color_columns(X_COLOR, Y_COLOR, Z_COLOR)
+        matrix.set_column_colors(X_COLOR, Y_COLOR, Z_COLOR)
         det_text = get_det_text(matrix, 0)
         brace = Brace(matrix, DOWN)
         words = TextMobject("""
@@ -845,7 +842,7 @@ class TwoDDeterminantFormula(Scene):
     def construct(self):
         eq = TextMobject("=")
         matrix = Matrix([["a", "b"], ["c", "d"]])
-        matrix.set_color_columns(X_COLOR, Y_COLOR)
+        matrix.set_column_colors(X_COLOR, Y_COLOR)
         ma, mb, mc, md = matrix.get_entries().split()
         ma.shift(0.1*DOWN)
         mc.shift(0.7*mc.get_height()*DOWN)
@@ -875,7 +872,7 @@ class TwoDDeterminantFormula(Scene):
         self.wait()
         self.play(*[
             Transform(m, m.zero)
-            for m in mb, mc, b, c
+            for m in (mb, mc, b, c)
         ])
         self.wait()
         for pair in (mb, b), (mc, c):
@@ -914,11 +911,11 @@ class TwoDDeterminantFormulaIntuition(LinearTransformationScene):
             [[1, 0], [float(b)/d, 1]],
             added_anims = [
                 ApplyMethod(m.shift, b*RIGHT)
-                for m in side_brace, height
+                for m in (side_brace, height)
             ]
         )
         self.wait()
-        self.play(*map(FadeOut, [i_brace, side_brace, width, height]))
+        self.play(*list(map(FadeOut, [i_brace, side_brace, width, height])))
         matrix1 = np.dot(
             [[a, b], [c, d]],
             np.linalg.inv([[a, b], [0, d]])
@@ -943,7 +940,7 @@ class FullFormulaExplanation(LinearTransformationScene):
 
     def get_matrix(self):
         matrix = Matrix([["a", "b"], ["c", "d"]])
-        matrix.set_color_columns(X_COLOR, Y_COLOR)
+        matrix.set_column_colors(X_COLOR, Y_COLOR)
         ma, mb, mc, md = matrix.get_entries().split()
         ma.shift(0.1*DOWN)
         mc.shift(0.7*mc.get_height()*DOWN)
@@ -1018,7 +1015,7 @@ class FullFormulaExplanation(LinearTransformationScene):
 
         formula.next_to(det_text, RIGHT)
         everyone = VMobject(det_text, matrix, formula)
-        everyone.scale_to_fit_width(FRAME_WIDTH - 1)
+        everyone.set_width(FRAME_WIDTH - 1)
         everyone.next_to(DOWN, DOWN)
         background_rect = BackgroundRectangle(everyone)
         self.play(
@@ -1030,13 +1027,13 @@ class FullFormulaExplanation(LinearTransformationScene):
 class ThreeDDetFormula(Scene):
     def construct(self):
         matrix = Matrix([list("abc"), list("def"), list("ghi")])
-        matrix.set_color_columns(X_COLOR, Y_COLOR, Z_COLOR)
+        matrix.set_column_colors(X_COLOR, Y_COLOR, Z_COLOR)
         m1 = Matrix([["e", "f"], ["h", "i"]])
-        m1.set_color_columns(Y_COLOR, Z_COLOR)
+        m1.set_column_colors(Y_COLOR, Z_COLOR)
         m2 = Matrix([["d", "f"], ["g", "i"]])
-        m2.set_color_columns(X_COLOR, Z_COLOR)
+        m2.set_column_colors(X_COLOR, Z_COLOR)
         m3 = Matrix([["d", "e"], ["g", "h"]])
-        m3.set_color_columns(X_COLOR, Y_COLOR)
+        m3.set_column_colors(X_COLOR, Y_COLOR)
 
         for m in matrix, m1, m2, m3:
             m.add(get_det_text(m))
@@ -1111,10 +1108,10 @@ class NextVideo(Scene):
         title = TextMobject("""
             Next video: Inverse matrices, column space and null space
         """)
-        title.scale_to_fit_width(FRAME_WIDTH - 2)
+        title.set_width(FRAME_WIDTH - 2)
         title.to_edge(UP)
         rect = Rectangle(width = 16, height = 9, color = BLUE)
-        rect.scale_to_fit_height(6)
+        rect.set_height(6)
         rect.next_to(title, DOWN)
 
         self.add(title)

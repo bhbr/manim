@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+
 from big_ol_pile_of_manim_imports import *
 
 from once_useful_constructs.light import *
@@ -140,14 +141,14 @@ class LightIndicator(VMobject):
 
 
     def measured_intensity(self):
-        distance = np.linalg.norm(self.get_measurement_point() - 
+        distance = get_norm(self.get_measurement_point() - 
             self.light_source.get_source_point())
         intensity = self.light_source.opacity_function(distance) / self.opacity_for_unit_intensity
         return intensity
 
     def continual_update(self):
         if self.light_source == None:
-            print "Indicator cannot update, reason: no light source found"
+            print("Indicator cannot update, reason: no light source found")
         self.set_intensity(self.measured_intensity())
 
         
@@ -176,9 +177,9 @@ class ContinualLightIndicatorUpdate(ContinualAnimation):
 
 def copy_func(f):
     """Based on http://stackoverflow.com/a/6528148/190597 (Glenn Maynard)"""
-    g = types.FunctionType(f.func_code, f.func_globals, name=f.func_name,
-                           argdefs=f.func_defaults,
-                           closure=f.func_closure)
+    g = types.FunctionType(f.__code__, f.__globals__, name=f.__name__,
+                           argdefs=f.__defaults__,
+                           closure=f.__closure__)
     g = functools.update_wrapper(g, f)
     return g
 
@@ -367,7 +368,7 @@ class IntroScene(PiCreatureScene):
         slab_colors = [YELLOW, BLUE] * (max_n2 / 2)
 
         for t1, t2, color in zip(series_terms, series_terms[1:], slab_colors):
-            line = Line(*map(self.number_line.number_to_point, [t1, t2]))
+            line = Line(*list(map(self.number_line.number_to_point, [t1, t2])))
             rect = Rectangle()
             rect.stroke_width = 0
             rect.fill_opacity = 1
@@ -526,7 +527,7 @@ class IntroScene(PiCreatureScene):
         q_mark.next_to(q_circle)
 
         thought = Group(q_circle, q_mark)
-        q_mark.scale_to_fit_height(0.6 * q_circle.get_height())
+        q_mark.set_height(0.6 * q_circle.get_height())
 
         self.look_at(pi_squared)
         self.pi_creature_thinks(thought,target_mode = "confused",
@@ -569,8 +570,8 @@ class FirstLighthouseScene(PiCreatureScene):
             color = WHITE,
             number_at_center = 1.6,
             stroke_width = 1,
-            numbers_with_elongated_ticks = range(1,5),
-            numbers_to_show = range(1,5),
+            numbers_with_elongated_ticks = list(range(1,5)),
+            numbers_to_show = list(range(1,5)),
             unit_size = 2,
             tick_frequency = 0.2,
             line_to_number_buff = LARGE_BUFF,
@@ -617,7 +618,7 @@ class FirstLighthouseScene(PiCreatureScene):
         euler_sum_above = TexMobject("1", "+", "{1\over 4}", 
             "+", "{1\over 9}", "+", "{1\over 16}", "+", "{1\over 25}", "+", "{1\over 36}")
 
-        for (i,term) in zip(range(len(euler_sum_above)),euler_sum_above):
+        for (i,term) in zip(list(range(len(euler_sum_above))),euler_sum_above):
             #horizontal alignment with tick marks
             term.next_to(self.number_line.number_to_point(0.5*i+1),UP,buff = 2)
             # vertical alignment with light indicator
@@ -650,7 +651,7 @@ class FirstLighthouseScene(PiCreatureScene):
 
 
         # slowly switch on visible light cones and increment indicator
-        for (i,light_source) in zip(range(NUM_VISIBLE_CONES),light_sources[:NUM_VISIBLE_CONES]):
+        for (i,light_source) in zip(list(range(NUM_VISIBLE_CONES)),light_sources[:NUM_VISIBLE_CONES]):
             indicator_start_time = 1.0 * (i+1) * SWITCH_ON_RUN_TIME/light_source.radius * self.number_line.unit_size
             indicator_stop_time = indicator_start_time + INDICATOR_UPDATE_TIME
             indicator_rate_func = squish_rate_func(
@@ -683,7 +684,7 @@ class FirstLighthouseScene(PiCreatureScene):
         self.wait()
 
         # quickly switch on off-screen light cones and increment indicator
-        for (i,light_source) in zip(range(NUM_VISIBLE_CONES,NUM_CONES),light_sources[NUM_VISIBLE_CONES:NUM_CONES]):
+        for (i,light_source) in zip(list(range(NUM_VISIBLE_CONES,NUM_CONES)),light_sources[NUM_VISIBLE_CONES:NUM_CONES]):
             indicator_start_time = 0.5 * (i+1) * FAST_SWITCH_ON_RUN_TIME/light_source.radius * self.number_line.unit_size
             indicator_stop_time = indicator_start_time + FAST_INDICATOR_UPDATE_TIME
             indicator_rate_func = squish_rate_func(#smooth, 0.8, 0.9)
@@ -1658,8 +1659,8 @@ class BackToEulerSumScene(PiCreatureScene):
             color = WHITE,
             number_at_center = 1.6,
             stroke_width = 1,
-            numbers_with_elongated_ticks = range(1,5),
-            numbers_to_show = range(1,5),
+            numbers_with_elongated_ticks = list(range(1,5)),
+            numbers_to_show = list(range(1,5)),
             unit_size = 2,
             tick_frequency = 0.2,
             line_to_number_buff = LARGE_BUFF,
@@ -1737,7 +1738,7 @@ class BackToEulerSumScene(PiCreatureScene):
                 show_reading = False
         )
         indicator_reading = euler_sum[0]
-        indicator_reading.scale_to_fit_height(0.5 * indicator.get_height())
+        indicator_reading.set_height(0.5 * indicator.get_height())
         indicator_reading.move_to(indicator.get_center())
         indicator.add(indicator_reading)
         indicator.tex_reading = indicator_reading
@@ -1784,7 +1785,7 @@ class BackToEulerSumScene(PiCreatureScene):
             # center it in the indicator
 
             if bubble_indicator_target.tex_reading.get_tex_string() != "1":
-                bubble_indicator_target.tex_reading.scale_to_fit_height(0.8*indicator.get_height())
+                bubble_indicator_target.tex_reading.set_height(0.8*indicator.get_height())
             # the target is less bright, possibly switch to a white text color
             if bubble_indicator_target.intensity < 0.7:
                 bubble_indicator.tex_reading.set_fill(color = WHITE)
@@ -1847,7 +1848,7 @@ class BackToEulerSumScene(PiCreatureScene):
         sum_indicator.set_intensity(intensities[0] * np.pi**2/6)
         sum_indicator_reading = TexMobject("{\pi^2 \over 6}")
         sum_indicator_reading.set_fill(color = BLACK)
-        sum_indicator_reading.scale_to_fit_height(0.8 * sum_indicator.get_height())
+        sum_indicator_reading.set_height(0.8 * sum_indicator.get_height())
         sum_indicator.add(sum_indicator_reading)
         sum_indicator.move_to(collection_point)
 
@@ -1913,9 +1914,9 @@ class TwoLightSourcesScene(PiCreatureScene):
             SwitchOn(ls2.ambient_light)
         )
 
-        distance1 = np.linalg.norm(C - ls1.get_source_point())
+        distance1 = get_norm(C - ls1.get_source_point())
         intensity = ls1.ambient_light.opacity_function(distance1) / indicator.opacity_for_unit_intensity
-        distance2 = np.linalg.norm(C - ls2.get_source_point())
+        distance2 = get_norm(C - ls2.get_source_point())
         intensity += ls2.ambient_light.opacity_function(distance2) / indicator.opacity_for_unit_intensity
 
         self.play(
@@ -2552,7 +2553,7 @@ class InscribedAngleScene(ThreeDScene):
             show_animation = (onscreen_old or onscreen_1 or onscreen_2)
 
             if show_animation:
-                print "animating (", i, ",", step, ")"
+                print("animating (", i, ",", step, ")")
                 self.play(
                     ApplyMethod(ls1.move_source_to,ls_new_loc1, run_time = run_time),
                     ApplyMethod(ls2.move_source_to,ls_new_loc2, run_time = run_time),
@@ -3050,9 +3051,9 @@ class PondScene(ThreeDScene):
         def right_angle(pointA, pointB, pointC, size = 1):
 
             v1 = pointA - pointB
-            v1 = size * v1/np.linalg.norm(v1)
+            v1 = size * v1/get_norm(v1)
             v2 = pointC - pointB
-            v2 = size * v2/np.linalg.norm(v2)
+            v2 = size * v2/get_norm(v2)
             
             P = pointB
             Q = pointB + v1
@@ -3151,7 +3152,7 @@ class PondScene(ThreeDScene):
         # first lighthouse
         original_op_func = inverse_quadratic(LIGHT_MAX_INT,LIGHT_SCALE,LIGHT_CUTOFF)
         ls0 = LightSource(opacity_function = original_op_func, radius = 15.0, num_levels = 15)
-        ls0.lighthouse.scale_to_fit_height(LIGHTHOUSE_HEIGHT)
+        ls0.lighthouse.set_height(LIGHTHOUSE_HEIGHT)
         ls0.lighthouse.height = LIGHTHOUSE_HEIGHT
         ls0.move_source_to(OBSERVER_POINT + LAKE0_RADIUS * 2 * UP)
         self.zoomable_mobs.add(ls0, ls0.lighthouse, ls0.ambient_light)
@@ -3333,7 +3334,7 @@ class PondScene(ThreeDScene):
             show_animation = (onscreen_old or onscreen_1 or onscreen_2)
 
             if show_animation or animate:
-                print "animating (", i, ",", step, ")"
+                print("animating (", i, ",", step, ")")
                 self.play(
                     ApplyMethod(ls1.move_source_to,ls_new_loc1, run_time = run_time),
                     ApplyMethod(ls2.move_source_to,ls_new_loc2, run_time = run_time),
@@ -3671,7 +3672,7 @@ class PondScene(ThreeDScene):
         self.play(FadeOut(self.inner_lake))
 
         for n in range(3,max_it + 1):
-            print "working on n = ", n, "..."
+            print("working on n = ", n, "...")
             new_lake = self.outer_lake.copy().scale(2,about_point = self.obs_dot.get_center())
             for (i,ls) in enumerate(self.light_sources_array[:2**n]):
                 #print i
@@ -3702,14 +3703,14 @@ class PondScene(ThreeDScene):
                 onscreen_2 = np.all(np.abs(pos2[:2]) < 10 * 2**2)
                 
                 if onscreen_old or onscreen_1:
-                    print "anim1 for step", n, "part", i
-                    print "------------------ moving from", ls_old_loc[:2], "to", pos1[:2]
+                    print("anim1 for step", n, "part", i)
+                    print("------------------ moving from", ls_old_loc[:2], "to", pos1[:2])
                     shift_list.append(ApplyMethod(ls1.move_source_to, pos1, run_time = STEP_RUN_TIME))
                 else:
                     ls1.move_source_to(pos1)
                 if onscreen_old or onscreen_2:
-                    print "anim2 for step", n, "part", i
-                    print "------------------ moving from", ls_old_loc[:2], "to", pos2[:2]
+                    print("anim2 for step", n, "part", i)
+                    print("------------------ moving from", ls_old_loc[:2], "to", pos2[:2])
                     shift_list.append(ApplyMethod(ls2.move_source_to, pos2, run_time = STEP_RUN_TIME))
                 else:
                     ls2.move_source_to(pos2)
@@ -3718,7 +3719,7 @@ class PondScene(ThreeDScene):
                 #print shift_list
 
             self.play(*shift_list)
-            print "...done"
+            print("...done")
 
 
         #self.revert_to_original_skipping_status()
@@ -3736,7 +3737,7 @@ class PondScene(ThreeDScene):
             stroke_width = LAKE_STROKE_WIDTH,
             stroke_color = LAKE_STROKE_COLOR,
             numbers_with_elongated_ticks = [],
-            numbers_to_show = range(-MAX_N,MAX_N + 1),#,2),
+            numbers_to_show = list(range(-MAX_N,MAX_N + 1)),#,2),
             unit_size = LAKE0_RADIUS * TAU/4 / 2 * scale,
             tick_frequency = 1,
             tick_size = LAKE_STROKE_WIDTH,
@@ -3745,9 +3746,9 @@ class PondScene(ThreeDScene):
             label_direction = UP,
         ).shift(origin_point - self.number_line.number_to_point(0)) # .shift(scale * 2.5 * DOWN)
 
-        print "scale ", scale
-        print "number line at", self.number_line.get_center()
-        print "should be at", origin_point, "or", OBSERVER_POINT
+        print("scale ", scale)
+        print("number line at", self.number_line.get_center())
+        print("should be at", origin_point, "or", OBSERVER_POINT)
 
         self.number_line.tick_marks.fade(1)
         self.number_line_labels = self.number_line.get_number_mobjects()
@@ -3827,7 +3828,7 @@ class PondScene(ThreeDScene):
 
         two_sided_sum.scale(TEX_SCALE)
         
-        for (i,submob) in zip(range(nb_symbols),two_sided_sum.submobjects):
+        for (i,submob) in zip(list(range(nb_symbols)),two_sided_sum.submobjects):
             submob.next_to(self.number_line.number_to_point(i - 13),DOWN, buff = 2*scale)
             if (i == 0 or i % 2 == 1 or i == nb_symbols - 1): # non-fractions
                 submob.shift(0.3 * scale * DOWN)
@@ -4472,9 +4473,9 @@ class RightAnglesOverlay(Scene):
         def right_angle(pointA, pointB, pointC, size = 1):
 
             v1 = pointA - pointB
-            v1 = size * v1/np.linalg.norm(v1)
+            v1 = size * v1/get_norm(v1)
             v2 = pointC - pointB
-            v2 = size * v2/np.linalg.norm(v2)
+            v2 = size * v2/get_norm(v2)
             
             P = pointB
             Q = pointB + v1

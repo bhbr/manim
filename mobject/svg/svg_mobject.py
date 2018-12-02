@@ -41,8 +41,9 @@ class SVGMobject(VMobject):
         "propagate_style_to_family": True,
     }
 
-    def __init__(self, **kwargs):
-        digest_config(self, kwargs, locals())
+    def __init__(self, file_name=None, **kwargs):
+        digest_config(self, kwargs)
+        self.file_name = file_name or self.file_name
         self.ensure_valid_file()
         VMobject.__init__(self, **kwargs)
         self.move_into_position()
@@ -53,6 +54,7 @@ class SVGMobject(VMobject):
         possible_paths = [
             os.path.join(SVG_IMAGE_DIR, self.file_name),
             os.path.join(SVG_IMAGE_DIR, self.file_name + ".svg"),
+            os.path.join(SVG_IMAGE_DIR, self.file_name + ".xdv"),
             self.file_name,
             self.file_name + ".svg",
         ]
@@ -104,7 +106,7 @@ class SVGMobject(VMobject):
         else:
             pass  # TODO
             # warnings.warn("Unknown element type: " + element.tagName)
-        result = filter(lambda m: m is not None, result)
+        result = [m for m in result if m is not None]
         self.handle_transforms(element, VMobject(*result))
         if len(result) > 1 and not self.unpack_groups:
             result = [VGroup(*result)]
@@ -129,6 +131,13 @@ class SVGMobject(VMobject):
             self.ref_to_element[ref]
         )
 
+    def attribute_to_float(self, attr):
+        stripped_attr = "".join([
+            char for char in attr
+            if char in string.digits + "." + "-"
+        ])
+        return float(stripped_attr)
+
     def polygon_to_mobject(self, polygon_element):
         # TODO, This seems hacky...
         path_string = polygon_element.getAttribute("points")
@@ -141,19 +150,23 @@ class SVGMobject(VMobject):
 
     def circle_to_mobject(self, circle_element):
         x, y, r = [
-            float(circle_element.getAttribute(key))
+            self.attribute_to_float(
+                circle_element.getAttribute(key)
+            )
             if circle_element.hasAttribute(key)
             else 0.0
-            for key in "cx", "cy", "r"
+            for key in ("cx", "cy", "r")
         ]
         return Circle(radius=r).shift(x * RIGHT + y * DOWN)
 
     def ellipse_to_mobject(self, circle_element):
         x, y, rx, ry = [
-            float(circle_element.getAttribute(key))
+            self.attribute_to_float(
+                circle_element.getAttribute(key)
+            )
             if circle_element.hasAttribute(key)
             else 0.0
-            for key in "cx", "cy", "rx", "ry"
+            for key in ("cx", "cy", "rx", "ry")
         ]
         return Circle().scale(rx * RIGHT + ry * UP).shift(x * RIGHT + y * DOWN)
 
@@ -184,8 +197,12 @@ class SVGMobject(VMobject):
 
         if corner_radius == 0:
             mob = Rectangle(
-                width=float(rect_element.getAttribute("width")),
-                height=float(rect_element.getAttribute("height")),
+                width=self.attribute_to_float(
+                    rect_element.getAttribute("width")
+                ),
+                height=self.attribute_to_float(
+                    rect_element.getAttribute("height")
+                ),
                 stroke_width=stroke_width,
                 stroke_color=stroke_color,
                 fill_color=fill_color,
@@ -193,8 +210,12 @@ class SVGMobject(VMobject):
             )
         else:
             mob = RoundedRectangle(
-                width=float(rect_element.getAttribute("width")),
-                height=float(rect_element.getAttribute("height")),
+                width=self.attribute_to_float(
+                    rect_element.getAttribute("width")
+                ),
+                height=self.attribute_to_float(
+                    rect_element.getAttribute("height")
+                ),
                 stroke_width=stroke_width,
                 stroke_color=stroke_color,
                 fill_color=fill_color,
@@ -208,9 +229,9 @@ class SVGMobject(VMobject):
     def handle_transforms(self, element, mobject):
         x, y = 0, 0
         try:
-            x = float(element.getAttribute('x'))
+            x = self.attribute_to_float(element.getAttribute('x'))
             # Flip y
-            y = -float(element.getAttribute('y'))
+            y = -self.attribute_to_float(element.getAttribute('y'))
             mobject.shift(x * RIGHT + y * UP)
         except:
             pass
@@ -273,9 +294,9 @@ class SVGMobject(VMobject):
         if self.should_center:
             self.center()
         if self.height is not None:
-            self.scale_to_fit_height(self.height)
+            self.set_height(self.height)
         if self.width is not None:
-            self.scale_to_fit_width(self.width)
+            self.set_width(self.width)
 
 
 class VMobjectFromSVGPathstring(VMobject):
@@ -296,15 +317,15 @@ class VMobjectFromSVGPathstring(VMobject):
             "A",  # elliptical Arc
             "Z",  # closepath
         ]
-        result += map(lambda s: s.lower(), result)
+        result += [s.lower() for s in result]
         return result
 
     def generate_points(self):
         pattern = "[%s]" % ("".join(self.get_path_commands()))
-        pairs = zip(
+        pairs = list(zip(
             re.findall(pattern, self.path_string),
             re.split(pattern, self.path_string)[1:]
-        )
+        ))
         # Which mobject should new points be added to
         self.growing_path = self
         for command, coord_string in pairs:
@@ -376,7 +397,7 @@ class VMobjectFromSVGPathstring(VMobject):
         numbers = string_to_numbers(coord_string)
         if len(numbers) % 2 == 1:
             numbers.append(0)
-        num_points = len(numbers) / 2
+        num_points = len(numbers) // 2
         result = np.zeros((num_points, self.dim))
         result[:, :2] = np.array(numbers).reshape((num_points, 2))
         return result

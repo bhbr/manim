@@ -1,4 +1,5 @@
 from big_ol_pile_of_manim_imports import *
+from once_useful_constructs import *
 
 EXAMPLE_TRANFORM = [[0, 1], [-1, 1]]
 TRANFORMED_VECTOR = [[1], [2]]
@@ -37,7 +38,7 @@ class OpeningQuote(Scene):
             """, 
             organize_left_to_right = False
         )
-        words.scale_to_fit_width(2*(FRAME_X_RADIUS-1))
+        words.set_width(2*(FRAME_X_RADIUS-1))
         words.to_edge(UP)        
         for mob in words.submobjects[48:49+13]:
             mob.set_color(GREEN)
@@ -54,7 +55,7 @@ class VideoIcon(SVGMobject):
     def __init__(self, **kwargs):
         SVGMobject.__init__(self, "video_icon", **kwargs)
         self.center()
-        self.scale_to_fit_width(FRAME_WIDTH/12.)
+        self.set_width(FRAME_WIDTH/12.)
         self.set_stroke(color = WHITE, width = 0)
         self.set_fill(color = WHITE, opacity = 1)
 
@@ -92,14 +93,14 @@ class AboutLinearAlgebra(Scene):
 
     def show_dependencies(self):
         linalg = TextMobject("Linear Algebra")
-        subjects = map(TextMobject, [
+        subjects = list(map(TextMobject, [
             "Computer science",
             "Physics",
             "Electrical engineering",
             "Mechanical engineering",
             "Statistics",
             "\\vdots"
-        ])
+        ]))
         prev = subjects[0]
         for subject in subjects[1:]:
             subject.next_to(prev, DOWN, aligned_edge = LEFT)
@@ -132,7 +133,7 @@ class AboutLinearAlgebra(Scene):
         new_linalg = bubble.position_mobject_inside(linalg.copy())
         q_marks = TextMobject("???").next_to(randy, UP)
 
-        self.play(*map(FadeOut, all_else))
+        self.play(*list(map(FadeOut, all_else)))
         self.remove(*all_else)
         self.play(
             Transform(linalg, new_linalg),
@@ -187,12 +188,12 @@ class AboutLinearAlgebra(Scene):
                 \\end{array}
             \\right)
             = 
-            ac - bc
+            ad - bc
         """)
 
     def get_cross_product(self):
         return TexMobject("""
-            \\vec\\textbf{v} \\times \\textbf{w} = 
+            \\vec{\\textbf{v}} \\times \\textbf{w} =
             \\text{Det}\\left(
                 \\begin{array}{ccc}
                     \\hat{\imath} & \\hat{\jmath} & \\hat{k} \\\\
@@ -203,8 +204,8 @@ class AboutLinearAlgebra(Scene):
         """)
 
     def get_eigenvalue(self):
-        result = TextMobject("\\Text{Det}\\left(A - \\lambda I \\right) = 0")
-        result.submobjects[-5].set_color(YELLOW)
+        result = TexMobject("\\text{Det}\\left(A - \\lambda I \\right) = 0")
+        result.submobjects[0][-5].set_color(YELLOW)
         return result
 
     def get_matrix_multiplication_question(self):
@@ -272,7 +273,7 @@ class NumericVsGeometric(Scene):
             "\\\\ &=",
             matrix_to_tex_string([[1], [-1]]),
         ]))
-        matrix_vector_product.scale_to_fit_width(FRAME_X_RADIUS-0.5)
+        matrix_vector_product.set_width(FRAME_X_RADIUS-0.5)
         matrix_vector_product.next_to(self.vline, LEFT)
 
         self.play(
@@ -313,7 +314,7 @@ class NumericVsGeometric(Scene):
             Randolph(mode = "pondering")
         ]
         bulb = SVGMobject("light_bulb")
-        bulb.scale_to_fit_height(1)
+        bulb.set_height(1)
         bulb.set_color(YELLOW)
         thoughts = [
             matrix_to_mobject(EXAMPLE_TRANFORM),
@@ -381,7 +382,7 @@ class LinAlgPyramid(Scene):
         self.wait()
         self.play(*[
             ApplyMethod(m.set_color, DARK_GREY)
-            for m in words[0], rects[0]
+            for m in (words[0], rects[0])
         ])
         self.wait()
         self.list_applications(rects[-1])
@@ -390,7 +391,7 @@ class LinAlgPyramid(Scene):
         height = 1
         rects = [
             Rectangle(height = height, width = width)
-            for width in 8, 5, 2
+            for width in (8, 5, 2)
         ]
         rects[0].shift(2*DOWN)
         for i in 1, 2:
@@ -587,7 +588,7 @@ class PhysicsExample(Scene):
 
         p1 = parabola.point_from_proportion(alpha)
         p2 = parabola.point_from_proportion(alpha + d_alpha)
-        vector = vector_length*(p2-p1)/np.linalg.norm(p2-p1)
+        vector = vector_length*(p2-p1)/get_norm(p2-p1)
         v_mob = Vector(vector, color = YELLOW)
         vx = Vector(vector[0]*RIGHT, color = GREEN_B)
         vy = Vector(vector[1]*UP, color = RED)
@@ -679,7 +680,7 @@ class LinearAlgebraIntuitions(Scene):
 class MatricesAre(Scene):
     def construct(self):
         matrix = matrix_to_mobject([[1, -1], [1, 2]])
-        matrix.scale_to_fit_height(6)
+        matrix.set_height(6)
         arrow = Arrow(LEFT, RIGHT, stroke_width = 8, preserve_tip_size_when_scaling = False)
         arrow.scale(2)
         arrow.to_edge(RIGHT)
@@ -702,7 +703,7 @@ class MatrixMultiplicationIs(Scene):
         matrix2 = matrix_to_mobject([[2, 1], [1, 2]])
         matrix2.set_color(GREEN)
         for m in matrix1, matrix2:
-            m.scale_to_fit_height(3)
+            m.set_height(3)
         arrow = Arrow(LEFT, RIGHT, stroke_width = 6, preserve_tip_size_when_scaling = False)
         arrow.scale(2)
         arrow.to_edge(RIGHT)
@@ -747,7 +748,7 @@ class DeterminantsAre(Scene):
                 \\end{array}
             \\right]\\right)
         """)
-        tex_mob.scale_to_fit_height(4)
+        tex_mob.set_height(4)
         arrow = Arrow(LEFT, RIGHT, stroke_width = 8, preserve_tip_size_when_scaling = False)
         arrow.scale(2)
         arrow.to_edge(RIGHT)
@@ -813,7 +814,7 @@ class TableOfContents(Scene):
         h_line = Line(FRAME_X_RADIUS*LEFT, FRAME_X_RADIUS*RIGHT)
         h_line.next_to(title, DOWN)
         h_line.to_edge(LEFT, buff = 0)
-        chapters = VMobject(*map(TextMobject, [
+        chapters = VMobject(*list(map(TextMobject, [
             "Chapter 1: Vectors, what even are they?",
             "Chapter 2: Linear combinations, span and bases",
             "Chapter 3: Matrices as linear transformations",
@@ -824,7 +825,7 @@ class TableOfContents(Scene):
             "Chapter 8: Change of basis",
             "Chapter 9: Eigenvectors and eigenvalues",
             "Chapter 10: Abstract vector spaces",
-        ]))
+        ])))
         chapters.arrange_submobjects(DOWN)
         chapters.scale(0.7)
         chapters.next_to(h_line, DOWN)
@@ -862,7 +863,7 @@ class TableOfContents(Scene):
     def series_of_videos(self, chapters):
         icon = SVGMobject("video_icon")
         icon.center()
-        icon.scale_to_fit_width(FRAME_WIDTH/12.)
+        icon.set_width(FRAME_WIDTH/12.)
         icon.set_stroke(color = WHITE, width = 0)
         icons = [icon.copy() for chapter in chapters.split()]
         colors = Color(BLUE_A).range_to(BLUE_D, len(icons))
@@ -907,7 +908,7 @@ class ResourceForTeachers(Scene):
         bubble.clear()
         randys = VMobject(*[
             Randolph(color = c)
-            for c in BLUE_D, BLUE_C, BLUE_E
+            for c in (BLUE_D, BLUE_C, BLUE_E)
         ])
         randys.arrange_submobjects(RIGHT)
         randys.scale(0.8)
@@ -930,14 +931,14 @@ class AboutPacing(Scene):
 
 class DifferingBackgrounds(Scene):
     def construct(self):
-        words = map(TextMobject, [
+        words = list(map(TextMobject, [
             "Just brushing up",
             "Has yet to take the course",
             "Supplementing course concurrently",
-        ])
+        ]))
         students = VMobject(*[
             Randolph(color = c)
-            for c in BLUE_D, BLUE_C, BLUE_E
+            for c in (BLUE_D, BLUE_C, BLUE_E)
         ])
         modes = ["pondering", "speaking_looking_left", "sassy"]
         students.arrange_submobjects(RIGHT)
@@ -970,8 +971,8 @@ class PauseAndPonder(Scene):
     def construct(self):
         pause = TexMobject("=").rotate(np.pi/2)
         pause.stretch(0.5, 1)
-        pause.scale_to_fit_height(1.5)
-        bubble = ThoughtBubble().scale_to_fit_height(2)
+        pause.set_height(1.5)
+        bubble = ThoughtBubble().set_height(2)
         pause.shift(LEFT)
         bubble.next_to(pause, RIGHT, buff = 1)
 
@@ -985,7 +986,7 @@ class NextVideo(Scene):
         title = TextMobject("Next video: Vectors, what even are they?")
         title.to_edge(UP)
         rect = Rectangle(width = 16, height = 9, color = BLUE)
-        rect.scale_to_fit_height(6)
+        rect.set_height(6)
         rect.next_to(title, DOWN)
 
         self.add(title)

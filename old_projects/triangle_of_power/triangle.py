@@ -1,5 +1,6 @@
 import numbers
 from big_ol_pile_of_manim_imports import *
+from functools import reduce
 
 OPERATION_COLORS = [YELLOW, GREEN, BLUE_B]
 
@@ -21,14 +22,14 @@ def get_equation(index, x = 2, y = 3, z = 8, expression_only = False):
     return TexMobject(tex).set_color(OPERATION_COLORS[index])
 
 def get_inverse_rules():
-    return map(TexMobject, [
+    return list(map(TexMobject, [
         "x^{\\log_x(z)} = z",
         "\\log_x\\left(x^y \\right) = y",
         "\\sqrt[y]{x^y} = x",
         "\\left(\\sqrt[y]{z}\\right)^y = z",
         "\\sqrt[\\log_x(z)]{z} = x",
         "\\log_{\\sqrt[y]{z}}(z) = y",
-    ])
+    ]))
 
 def get_top_inverse_rules():
     result = []
@@ -117,7 +118,7 @@ class TOP(VMobject):
         return value
 
     def put_top_on_vertix(self, index, top):
-        top.scale_to_fit_height(2*self.get_value_height())
+        top.set_height(2*self.get_value_height())
         vertices = np.array(top.get_vertices())
         vertices[index] = 0
         start = reduce(op.add, vertices)/2
@@ -146,7 +147,7 @@ class TOP(VMobject):
         )
 
     def rescale_corner_mobject(self, mobject):
-        mobject.scale_to_fit_height(self.get_value_height())
+        mobject.set_height(self.get_value_height())
         return self
 
     def get_value_height(self):
@@ -279,12 +280,12 @@ class SixDifferentInverses(Scene):
 
         top_rules = get_top_inverse_rules()
         for rule, top_rule in zip(rules, top_rules):
-            top_rule.scale_to_fit_height(1.5)
+            top_rule.set_height(1.5)
             top_rule.center()
             top_rule.shift(rule.get_center())
-        self.play(*map(FadeOut, rules))
+        self.play(*list(map(FadeOut, rules)))
         self.remove(*rules)
-        self.play(*map(GrowFromCenter, top_rules))
+        self.play(*list(map(GrowFromCenter, top_rules)))
         self.wait()
         self.remove(general_idea)
         rules = get_inverse_rules()
@@ -319,7 +320,7 @@ class SixDifferentInverses(Scene):
         assert(lil_top is not None and lil_symbol is not None)
         cancel_parts = [
             VMobject(top.triangle, top.values[symbol_index])
-            for top in lil_top, big_top
+            for top in (lil_top, big_top)
         ]
         new_symbol = lil_symbol.copy()
         new_symbol.replace(right_symbol)
@@ -394,10 +395,7 @@ class AdditiveProperty(Scene):
             ApplyMethod(log_rule.set_color, RED),
         )
         self.wait()
-        all_tops = filter(
-            lambda m : isinstance(m, TOP),
-            t_exp_rule.split()+t_log_rule.split()
-        )
+        all_tops = [m for m in t_exp_rule.split()+t_log_rule.split() if isinstance(m, TOP)]
         self.put_in_circles(all_tops)
         self.set_color_appropriate_parts(t_exp_rule, t_log_rule)
 
@@ -608,7 +606,7 @@ class RightStaysConstantQ(Scene):
     def construct(self):
         top1, top2, top3 = old_tops = [
             TOP(None, s, "8")
-            for s in "x", "y", TexMobject("x?y")
+            for s in ("x", "y", TexMobject("x?y"))
         ]
         q_mark = TexMobject("?").scale(2)
         equation = VMobject(
@@ -617,11 +615,11 @@ class RightStaysConstantQ(Scene):
         equation.arrange_submobjects(buff = 0.7)
         symbols_at_top = VMobject(*[
             top.values[1]
-            for top in top1, top2, top3
+            for top in (top1, top2, top3)
         ])
         symbols_at_lower_right = VMobject(*[
             top.put_on_vertex(0, top.values[1].copy())
-            for top in top1, top2, top3
+            for top in (top1, top2, top3)
         ])
         old_style_eq1 = TexMobject("\\sqrt[x]{8} ? \\sqrt[y]{8} = \\sqrt[x?y]{8}")
         old_style_eq1.set_color(BLUE)
@@ -645,7 +643,7 @@ class RightStaysConstantQ(Scene):
             Transform(triangle, equation),
             FadeOut(eight),
             ApplyPointwiseFunction(
-                lambda p : (p+2*DOWN)*15/np.linalg.norm(p+2*DOWN),
+                lambda p : (p+2*DOWN)*15/get_norm(p+2*DOWN),
                 bubble
             ),
             FadeIn(old_style_eq1),
@@ -759,7 +757,7 @@ class TowerExponentFrame(Scene):
             $7{,}625{,}597{,}484{,}987$.  But with the triangle
             of power, the difference is crystal clear:
         """)
-        words.scale_to_fit_width(FRAME_WIDTH-1)
+        words.set_width(FRAME_WIDTH-1)
         words.to_edge(UP)
         top1 = TOP(TOP(3, 3), 3)
         top2 = TOP(3, (TOP(3, 3)))

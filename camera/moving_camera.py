@@ -1,11 +1,27 @@
-from __future__ import absolute_import
+
 
 from constants import FRAME_HEIGHT
+from constants import FRAME_WIDTH
+from constants import ORIGIN
 from constants import WHITE
 
 from camera.camera import Camera
 from mobject.frame import ScreenRectangle
+from mobject.types.vectorized_mobject import VGroup
+from mobject.types.vectorized_mobject import VectorizedPoint
 from utils.config_ops import digest_config
+
+
+# TODO, think about how to incorporate perspective
+class CameraFrame(VGroup):
+    CONFIG = {
+        "width": FRAME_WIDTH,
+        "height": FRAME_HEIGHT,
+        "center": ORIGIN,
+    }
+
+    def __init__(self, **kwargs):
+        pass
 
 
 class MovingCamera(Camera):
@@ -57,6 +73,15 @@ class MovingCamera(Camera):
         # self.reset_frame_center()
         # self.realign_frame_shape()
         Camera.capture_mobjects(self, mobjects, **kwargs)
+
+    # Since the frame can be moving around, the cairo
+    # context used for updating should be regenerated
+    # at each frame.  So no caching.
+    def get_cached_cairo_context(self, pixel_array):
+        return None
+
+    def cache_cairo_context(self, pixel_array, ctx):
+        pass
 
     # def reset_frame_center(self):
     #     self.frame_center = self.frame.get_center()

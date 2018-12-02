@@ -1,17 +1,41 @@
 import os
 import numpy as np
 
-# Things anyone wishing to use this repository for their
-# own use will want to change
-MEDIA_DIR = os.path.join(
-    os.path.expanduser('~'),
-    "Dropbox (Privat)/manim_videos"
-)
+
+env_MEDIA_DIR = None
+MEDIA_DIR = "#ERROR#"
+
+try:
+    env_MEDIA_DIR = os.getenv("MEDIA_DIR")
+except NameError:
+    try:
+        env_MEDIA_DIR = os.environ['MEDIA_DIR']
+    except KeyError:
+        pass
+
+if not (env_MEDIA_DIR is None):
+    MEDIA_DIR = env_MEDIA_DIR
+elif os.path.exists("media_dir.txt"):
+    with open("media_dir.txt", 'rU') as media_file:
+        MEDIA_DIR = media_file.readline().strip()
+else:
+    MEDIA_DIR = os.path.join(
+        os.path.expanduser('~'),
+        "Dropbox (3Blue1Brown)/3Blue1Brown Team Folder"
+    )
+
+
+if not os.path.exists(MEDIA_DIR):
+    raise Exception("""
+        Redefine MEDIA_DIR by changing the MEDIA_DIR
+        environment constant or by changing
+        media_dir.txt to point to a valid directory
+        where movies and images will be written
+    """)
+
+with open("media_dir.txt", 'w') as media_file:
+    media_file.write(MEDIA_DIR)
 #
-
-
-DEFAULT_PIXEL_HEIGHT = 1080
-DEFAULT_PIXEL_WIDTH = 1920
 
 LOW_QUALITY_FRAME_DURATION = 1. / 15
 MEDIUM_QUALITY_FRAME_DURATION = 1. / 30
@@ -19,8 +43,13 @@ PRODUCTION_QUALITY_FRAME_DURATION = 1. / 60
 
 # There might be other configuration than pixel shape later...
 PRODUCTION_QUALITY_CAMERA_CONFIG = {
-    "pixel_height": DEFAULT_PIXEL_HEIGHT,
-    "pixel_width": DEFAULT_PIXEL_WIDTH,
+    "pixel_height": 1440,
+    "pixel_width": 2560,
+}
+
+HIGH_QUALITY_CAMERA_CONFIG = {
+    "pixel_height": 1080,
+    "pixel_width": 1920,
 }
 
 MEDIUM_QUALITY_CAMERA_CONFIG = {
@@ -33,10 +62,13 @@ LOW_QUALITY_CAMERA_CONFIG = {
     "pixel_width": 854,
 }
 
+DEFAULT_PIXEL_HEIGHT = PRODUCTION_QUALITY_CAMERA_CONFIG["pixel_height"]
+DEFAULT_PIXEL_WIDTH = PRODUCTION_QUALITY_CAMERA_CONFIG["pixel_width"]
+
 DEFAULT_POINT_DENSITY_2D = 25
 DEFAULT_POINT_DENSITY_1D = 250
 
-DEFAULT_POINT_THICKNESS = 4
+DEFAULT_STROKE_WIDTH = 4
 
 FRAME_HEIGHT = 8.0
 FRAME_WIDTH = FRAME_HEIGHT * DEFAULT_PIXEL_WIDTH / DEFAULT_PIXEL_HEIGHT
@@ -80,14 +112,15 @@ BOTTOM = FRAME_Y_RADIUS * DOWN
 LEFT_SIDE = FRAME_X_RADIUS * LEFT
 RIGHT_SIDE = FRAME_X_RADIUS * RIGHT
 
-TAU = 2 * np.pi
+PI = np.pi
+TAU = 2 * PI
 DEGREES = TAU / 360
 
-ANIMATIONS_DIR = os.path.join(MEDIA_DIR, "animations")
+VIDEO_DIR = os.path.join(MEDIA_DIR, "videos")
 RASTER_IMAGE_DIR = os.path.join(MEDIA_DIR, "designs", "raster_images")
 SVG_IMAGE_DIR = os.path.join(MEDIA_DIR, "designs", "svg_images")
 # TODO, staged scenes should really go into a subdirectory of a given scenes directory
-STAGED_SCENES_DIR = os.path.join(ANIMATIONS_DIR, "staged_scenes")
+STAGED_SCENES_DIR = os.path.join(VIDEO_DIR, "staged_scenes")
 ###
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 FILE_DIR = os.path.join(THIS_DIR, "files")
@@ -97,21 +130,24 @@ TEX_IMAGE_DIR = TEX_DIR  # TODO, What is this doing?
 MOBJECT_DIR = os.path.join(FILE_DIR, "mobjects")
 IMAGE_MOBJECT_DIR = os.path.join(MOBJECT_DIR, "image")
 
-if not os.path.exists(MEDIA_DIR):
-    raise Exception("""
-        Redefine MEDIA_DIR in constants.py to point to
-        a valid directory where movies and images will
-        be written
-    """)
-for folder in [FILE_DIR, RASTER_IMAGE_DIR, SVG_IMAGE_DIR, ANIMATIONS_DIR, TEX_DIR,
+for folder in [FILE_DIR, RASTER_IMAGE_DIR, SVG_IMAGE_DIR, VIDEO_DIR, TEX_DIR,
                TEX_IMAGE_DIR, MOBJECT_DIR, IMAGE_MOBJECT_DIR,
                STAGED_SCENES_DIR]:
     if not os.path.exists(folder):
         os.makedirs(folder)
 
+TEX_USE_CTEX = False
 TEX_TEXT_TO_REPLACE = "YourTextHere"
-TEMPLATE_TEX_FILE = os.path.join(THIS_DIR, "template.tex")
-TEMPLATE_TEXT_FILE = os.path.join(THIS_DIR, "text_template.tex")
+TEMPLATE_TEX_FILE = os.path.join(
+    THIS_DIR, "tex_template.tex" if not TEX_USE_CTEX
+    else "ctex_template.tex"
+)
+with open(TEMPLATE_TEX_FILE, "r") as infile:
+    TEMPLATE_TEXT_FILE_BODY = infile.read()
+    TEMPLATE_TEX_FILE_BODY = TEMPLATE_TEXT_FILE_BODY.replace(
+        TEX_TEXT_TO_REPLACE,
+        "\\begin{align*}\n" + TEX_TEXT_TO_REPLACE + "\n\\end{align*}",
+    )
 
 FFMPEG_BIN = "ffmpeg"
 
@@ -175,7 +211,17 @@ COLOR_MAP = {
     "GREEN_SCREEN": "#00FF00",
     "ORANGE": "#FF862F",
 }
-PALETTE = COLOR_MAP.values()
+PALETTE = list(COLOR_MAP.values())
 locals().update(COLOR_MAP)
-for name in filter(lambda s: s.endswith("_C"), COLOR_MAP.keys()):
+for name in [s for s in list(COLOR_MAP.keys()) if s.endswith("_C")]:
     locals()[name.replace("_C", "")] = locals()[name]
+
+# Streaming related configurations
+IS_LIVE_STREAMING = False
+LIVE_STREAM_NAME = "LiveStream"
+IS_STREAMING_TO_TWITCH = False
+TWITCH_STREAM_KEY = "YOUR_STREAM_KEY"
+STREAMING_PROTOCOL = "tcp"
+STREAMING_IP = "127.0.0.1"
+STREAMING_PORT = "2000"
+STREAMING_CLIENT = "ffplay"

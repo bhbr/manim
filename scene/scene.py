@@ -1,3 +1,4 @@
+
 import inspect
 import itertools as it
 import numpy as np
@@ -6,13 +7,18 @@ import random
 import shutil
 import subprocess as sp
 import warnings
+from time import sleep
+try:
+    import thread  # Low-level threading API (Python 2.7)
+except ImportError:
+    import _thread as thread  # Low-level threading API (Python 3.x)
 
 from tqdm import tqdm as ProgressDisplay
 
 from constants import *
 
 from animation.animation import Animation
-from animation.transform import MoveToTarget
+from animation.transform import MoveToTarget, ApplyMethod
 from camera.camera import Camera
 from continual_animation.continual_animation import ContinualAnimation
 from mobject.mobject import Mobject
@@ -23,6 +29,9 @@ from utils.output_directory_getters import get_image_output_directory
 
 from container.container import Container
 
+from mobject.svg.tex_mobject import TextMobject
+from animation.creation import Write
+import datetime
 
 class Scene(Container):
     CONFIG = {
@@ -57,6 +66,7 @@ class Scene(Container):
         self.frame_num = 0
         self.current_scene_time = 0
         self.original_skipping_status = self.skip_animations
+        self.stream_lock = False
         if self.name is None:
             self.name = self.__class__.__name__
         if self.random_seed is not None:
@@ -66,6 +76,8 @@ class Scene(Container):
         self.setup()
         if self.write_to_movie:
             self.open_movie_pipe()
+        if IS_LIVE_STREAMING:
+            return None
         try:
             self.construct(*self.construct_args)
         except EndSceneEarlyException:
@@ -109,11 +121,11 @@ class Scene(Container):
         to share local variables.
         """
         caller_locals = inspect.currentframe().f_back.f_locals
-        for key, value in caller_locals.items():
+        for key, value in list(caller_locals.items()):
             for o in objects:
                 if value is o:
                     setattr(self, key, value)
-        for key, value in newly_named_objects.items():
+        for key, value in list(newly_named_objects.items()):
             setattr(self, key, value)
         return self
 
@@ -171,9 +183,9 @@ class Scene(Container):
         self.clear()
     ###
 
-    def continual_update(self, dt=None):
-        if dt is None:
-            dt = self.frame_duration
+    def continual_update(self, dt):
+        for mobject in self.get_mobject_family_members():
+            mobject.update(dt)
         for continual_animation in self.continual_animations:
             continual_animation.update(dt)
 
@@ -184,13 +196,20 @@ class Scene(Container):
         self.wait(wind_down_time)
         # TODO, this is not done with the remove method so as to
         # keep the relevant mobjects.  Better way?
-        self.continual_animations = filter(
-            lambda ca: ca in continual_animations,
-            self.continual_animations
-        )
+        self.continual_animations = [ca for ca in self.continual_animations if ca in continual_animations]
 
     def should_continually_update(self):
-        return len(self.continual_animations) > 0 or self.always_continually_update
+        if self.always_continually_update:
+            return True
+        if len(self.continual_animations) > 0:
+            return True
+        any_time_based_update = any([
+            len(m.get_time_based_updaters()) > 0
+            for m in self.get_mobject_family_members()
+        ])
+        if any_time_based_update:
+            return True
+        return False
 
     ###
 
@@ -198,7 +217,7 @@ class Scene(Container):
         # Return only those which are not in the family
         # of another mobject from the scene
         mobjects = self.get_mobjects()
-        families = [m.submobject_family() for m in mobjects]
+        families = [m.get_family() for m in mobjects]
 
         def is_top_level(mobject):
             num_families = sum([
@@ -206,7 +225,10 @@ class Scene(Container):
                 for family in families
             ])
             return num_families == 1
-        return filter(is_top_level, mobjects)
+        return list(filter(is_top_level, mobjects))
+
+    def get_mobject_family_members(self):
+        return self.camera.extract_mobject_family_members(self.mobjects)
 
     def separate_mobjects_and_continual_animations(self, mobjects_or_continual_animations):
         mobjects = []
@@ -232,6 +254,7 @@ class Scene(Container):
         mobjects, continual_animations = self.separate_mobjects_and_continual_animations(
             mobjects_or_continual_animations
         )
+        mobjects += self.foreground_mobjects
         self.restructure_mobjects(to_remove=mobjects)
         self.mobjects += mobjects
         self.continual_animations += continual_animations
@@ -242,7 +265,7 @@ class Scene(Container):
         So a scene can just add all mobjects it's defined up to that point
         by calling add_mobjects_among(locals().values())
         """
-        mobjects = filter(lambda x: isinstance(x, Mobject), values)
+        mobjects = [x for x in values if isinstance(x, Mobject)]
         self.add(*mobjects)
         return self
 
@@ -255,11 +278,8 @@ class Scene(Container):
         for list_name in "mobjects", "foreground_mobjects":
             self.restructure_mobjects(mobjects, list_name, False)
 
-        self.continual_animations = filter(
-            lambda ca: ca not in continual_animations and
-            ca.mobject not in to_remove,
-            self.continual_animations
-        )
+        self.continual_animations = [ca for ca in self.continual_animations if ca not in continual_animations and
+            ca.mobject not in to_remove]
         return self
 
     def restructure_mobjects(
@@ -287,7 +307,7 @@ class Scene(Container):
             for mob in list_to_examine:
                 if mob in set_to_remove:
                     continue
-                intersect = set_to_remove.intersection(mob.submobject_family())
+                intersect = set_to_remove.intersection(mob.get_family())
                 if intersect:
                     add_safe_mobjects_from_list(mob.submobjects, intersect)
                 else:
@@ -335,15 +355,24 @@ class Scene(Container):
         return [m.copy() for m in self.mobjects]
 
     def get_moving_mobjects(self, *animations):
-        moving_mobjects = list(it.chain(
-            [
-                anim.mobject for anim in animations
-                if anim.mobject not in self.foreground_mobjects
-            ],
-            [ca.mobject for ca in self.continual_animations],
-            self.foreground_mobjects,
-        ))
-        return moving_mobjects
+        # Go through mobjects from start to end, and
+        # as soon as there's one that needs updating of
+        # some kind per frame, return the list from that
+        # point forward.
+        animation_mobjects = [anim.mobject for anim in animations]
+        ca_mobjects = [ca.mobject for ca in self.continual_animations]
+        mobjects = self.get_mobject_family_members()
+        for i, mob in enumerate(mobjects):
+            update_possibilities = [
+                mob in animation_mobjects,
+                mob in ca_mobjects,
+                len(mob.get_updaters()) > 0,
+                mob in self.foreground_mobjects
+            ]
+            for possibility in update_possibilities:
+                if possibility:
+                    return mobjects[i:]
+        return []
 
     def get_time_progression(self, run_time):
         if self.skip_animations:
@@ -385,8 +414,8 @@ class Scene(Container):
         def compile_method(state):
             if state["curr_method"] is None:
                 return
-            mobject = state["curr_method"].im_self
-            if state["last_method"] and state["last_method"].im_self is mobject:
+            mobject = state["curr_method"].__self__
+            if state["last_method"] and state["last_method"].__self__ is mobject:
                 animations.pop()
                 # method should already have target then.
             else:
@@ -396,7 +425,7 @@ class Scene(Container):
                 method_kwargs = state["method_args"].pop()
             else:
                 method_kwargs = {}
-            state["curr_method"].im_func(
+            state["curr_method"].__func__(
                 mobject.target,
                 *state["method_args"],
                 **method_kwargs
@@ -435,6 +464,8 @@ class Scene(Container):
                 raise EndSceneEarlyException()
 
     def play(self, *args, **kwargs):
+        if IS_LIVE_STREAMING:
+            self.stream_lock = False
         if len(args) == 0:
             warnings.warn("Called Scene.play with no animations")
             return
@@ -444,34 +475,55 @@ class Scene(Container):
             # This is where kwargs to play like run_time and rate_func
             # get applied to all animations
             animation.update_config(**kwargs)
+            # Anything animated that's not already in the
+            # scene gets added to the scene
+            if animation.mobject not in self.get_mobject_family_members():
+                self.add(animation.mobject)
         moving_mobjects = self.get_moving_mobjects(*animations)
 
         # Paint all non-moving objects onto the screen, so they don't
         # have to be rendered every frame
         self.update_frame(excluded_mobjects=moving_mobjects)
         static_image = self.get_frame()
+        total_run_time = 0
         for t in self.get_animation_time_progression(animations):
             for animation in animations:
                 animation.update(t / animation.run_time)
-            self.continual_update()
+            self.continual_update(dt=t - total_run_time)
             self.update_frame(moving_mobjects, static_image)
             self.add_frames(self.get_frame())
-        self.add(*moving_mobjects)
-        self.mobjects_from_last_animation = moving_mobjects
+            total_run_time = t
+        self.mobjects_from_last_animation = [
+            anim.mobject for anim in animations
+        ]
         self.clean_up_animations(*animations)
         if self.skip_animations:
-            # Todo, not great that this uses a variable from
-            # a previous loop...
-            self.continual_update(t)
+            self.continual_update(total_run_time)
         else:
             self.continual_update(0)
         self.num_plays += 1
+
+        if IS_LIVE_STREAMING:
+            self.stream_lock = True
+            thread.start_new_thread(self.idle_stream, ())
+
         return self
+
+    def idle_stream(self):
+        while(self.stream_lock):
+            a = datetime.datetime.now()
+            self.update_frame()
+            n_frames = 1
+            frame = self.get_frame()
+            self.add_frames(*[frame] * n_frames)
+            b = datetime.datetime.now()
+            time_diff = (b - a).total_seconds()
+            if time_diff < self.frame_duration:
+                sleep(self.frame_duration - time_diff)
 
     def clean_up_animations(self, *animations):
         for animation in animations:
             animation.clean_up(self)
-        self.add(*self.foreground_mobjects)
         return self
 
     def get_mobjects_from_last_animation(self):
@@ -481,17 +533,20 @@ class Scene(Container):
 
     def wait(self, duration=DEFAULT_WAIT_TIME):
         if self.should_continually_update():
+            total_time = 0
             for t in self.get_time_progression(duration):
-                self.continual_update()
+                self.continual_update(dt=t - total_time)
                 self.update_frame()
                 self.add_frames(self.get_frame())
+                total_time = t
         elif self.skip_animations:
             # Do nothing
             return self
         else:
             self.update_frame()
-            self.add_frames(*[self.get_frame()] *
-                            int(duration / self.frame_duration))
+            n_frames = int(duration / self.frame_duration)
+            frame = self.get_frame()
+            self.add_frames(*[frame] * n_frames)
         return self
 
     def wait_to(self, time, assert_positive=True):
@@ -583,6 +638,7 @@ class Scene(Container):
             '-pix_fmt', 'rgba',
             '-r', str(fps),  # frames per second
             '-i', '-',  # The imput comes from a pipe
+            '-c:v', 'h264_nvenc',
             '-an',  # Tells FFMPEG not to expect any audio
             '-loglevel', 'error',
         ]
@@ -590,24 +646,42 @@ class Scene(Container):
             # This is if the background of the exported video
             # should be transparent.
             command += [
-                '-vcodec', 'png',
+                '-vcodec', 'qtrle',
             ]
         else:
             command += [
                 '-vcodec', 'libx264',
                 '-pix_fmt', 'yuv420p',
             ]
-        command += [temp_file_path]
+        if IS_LIVE_STREAMING:
+            if IS_STREAMING_TO_TWITCH:
+                command += ['-f', 'flv']
+                command += ['rtmp://live.twitch.tv/app/' + TWITCH_STREAM_KEY]
+            else:
+                command += ['-f', 'mpegts']
+                command += [STREAMING_PROTOCOL + '://' + STREAMING_IP + ':' + STREAMING_PORT]
+        else:
+            command += [temp_file_path]
         # self.writing_process = sp.Popen(command, stdin=sp.PIPE, shell=True)
         self.writing_process = sp.Popen(command, stdin=sp.PIPE)
 
     def close_movie_pipe(self):
         self.writing_process.stdin.close()
         self.writing_process.wait()
+        if IS_LIVE_STREAMING:
+            return True
         if os.name == 'nt':
             shutil.move(*self.args_to_rename_file)
         else:
             os.rename(*self.args_to_rename_file)
+
+    def tex(self, latex):
+        eq = TextMobject(latex)
+        anims = []
+        anims.append(Write(eq))
+        for mobject in self.mobjects:
+            anims.append(ApplyMethod(mobject.shift,2*UP))
+        self.play(*anims)
 
 
 class EndSceneEarlyException(Exception):

@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
+
 from big_ol_pile_of_manim_imports import *
 from once_useful_constructs.light import AmbientLight
 from once_useful_constructs.light import Lighthouse
 from once_useful_constructs.light import SwitchOn
+from functools import reduce
 # from once_useful_constructs.light import LightSource
 
 PRODUCT_COLOR = BLUE
@@ -43,9 +45,9 @@ class WallisNumeratorDenominatorGenerator(object):
         return self
 
     def __next__(self):
-        return self.next()
+        return next(self)
 
-    def next(self):
+    def __next__(self):
         n = self.n
         self.n += 1
         if n % 2 == 0:
@@ -58,7 +60,7 @@ def get_wallis_product(n_terms=6, show_result=True):
     tex_mob_args = []
     nd_generator = WallisNumeratorDenominatorGenerator()
     for x in range(n_terms):
-        numerator, denominator = nd_generator.next()
+        numerator, denominator = next(nd_generator)
         tex_mob_args += [
             "{%d" % numerator, "\\over", "%d}" % denominator, "\\cdot"
         ]
@@ -74,7 +76,7 @@ def get_wallis_product_numerical_terms(n_terms=20):
     result = []
     nd_generator = WallisNumeratorDenominatorGenerator()
     for x in range(n_terms):
-        n, d = nd_generator.next()
+        n, d = next(nd_generator)
         result.append(float(n) / d)
     return result
 
@@ -125,7 +127,7 @@ class Introduction(Scene):
 
         rects = VGroup(*[
             SurroundingRectangle(product_mob[:n])
-            for n in range(3, 4 * n_terms, 4) + [4 * n_terms]
+            for n in list(range(3, 4 * n_terms, 4)) + [4 * n_terms]
         ])
         rect = rects[0].copy()
 
@@ -228,7 +230,7 @@ class SourcesOfOriginality(TeacherStudentsScene):
                 width=0.5 * big_rect.get_width() - 2 * SMALL_BUFF,
                 color=color
             )
-            for color in MATH_COLOR, COMMUNICATION_COLOR
+            for color in (MATH_COLOR, COMMUNICATION_COLOR)
         ]
         right_rect.flip()
         left_rect.next_to(big_rect.get_left(), RIGHT, SMALL_BUFF)
@@ -252,7 +254,7 @@ class SourcesOfOriginality(TeacherStudentsScene):
             "Previous video based on\\\\",
             "a paper by Johan W\\\"{a}stlund"
         )
-        based_on_wastlund.scale_to_fit_width(
+        based_on_wastlund.set_width(
             left_rect.get_width() - MED_SMALL_BUFF)
         based_on_wastlund.next_to(formula, DOWN, MED_LARGE_BUFF)
 
@@ -286,7 +288,7 @@ class SourcesOfOriginality(TeacherStudentsScene):
             )
         )
         self.play(big_rect.restore)
-        self.play(*map(ShowCreation, [left_rect, right_rect]))
+        self.play(*list(map(ShowCreation, [left_rect, right_rect])))
         self.wait()
         self.play(
             math.match_color, left_rect,
@@ -354,7 +356,7 @@ class SourcesOfOriginality(TeacherStudentsScene):
         )
 
         wallis_product = get_wallis_product(n_terms=4)
-        wallis_product.scale_to_fit_width(
+        wallis_product.set_width(
             left_rect.get_width() - 2 * MED_LARGE_BUFF)
         wallis_product.move_to(self.math_content, UP)
         wallis_product_name = TextMobject("``Wallis product''")
@@ -390,7 +392,7 @@ class Six(Scene):
         six = TexMobject("6")
         six.add_background_rectangle(opacity = 1)
         six.background_rectangle.stretch(1.5, 0)
-        six.scale_to_fit_height(7)
+        six.set_height(7)
         self.add(six)
 
 
@@ -516,7 +518,7 @@ class ShowProduct(Scene):
         decimal.next_to(brace, DOWN)
 
         self.add(brace, decimal, dots[0], parts[0])
-        tuples = zip(parts[1:], lines, dots[1:], partial_products[1:], braces[1:])
+        tuples = list(zip(parts[1:], lines, dots[1:], partial_products[1:], braces[1:]))
         for part, line, dot, prod, new_brace in tuples:
             self.play(
                 FadeIn(part),
@@ -634,7 +636,7 @@ class ShowProduct(Scene):
             parts.prefix.generate_target()
         larger_parts.fade(0.5)
         full_product = VGroup(*it.chain(
-            *zip(larger_parts.prefix.target, smaller_parts.prefix.target)
+            *list(zip(larger_parts.prefix.target, smaller_parts.prefix.target))
         ))
         for i, tex, vect in (0, "\\cdot", LEFT), (-1, "\\cdots", RIGHT):
             part = smaller_parts.prefix.target[i]
@@ -659,7 +661,7 @@ class ShowProduct(Scene):
         terms = self.wallis_product_terms
         partial_products = np.cumprod(terms)
         partial_products_iter = iter(partial_products)
-        print partial_products
+        print(partial_products)
 
         dots = VGroup(*[
             Dot(axes.coords_to_point(n + 1, prod))
@@ -677,16 +679,16 @@ class ShowProduct(Scene):
         ])
 
         brace = braces[0].copy()
-        decimal = DecimalNumber(partial_products_iter.next(), num_decimal_places=4)
+        decimal = DecimalNumber(next(partial_products_iter), num_decimal_places=4)
         decimal.next_to(brace, DOWN)
 
-        self.play(*map(FadeIn, [brace, decimal, dots[0]]))
-        tuples = zip(lines, dots[1:], braces[1:])
+        self.play(*list(map(FadeIn, [brace, decimal, dots[0]])))
+        tuples = list(zip(lines, dots[1:], braces[1:]))
         for line, dot, new_brace in tuples:
             self.play(
                 Transform(brace, new_brace),
                 ChangeDecimalToValue(
-                    decimal, partial_products_iter.next(),
+                    decimal, next(partial_products_iter),
                     position_update_func=lambda m: m.next_to(brace, DOWN)
                 ),
                 ShowCreation(line),
@@ -697,7 +699,7 @@ class ShowProduct(Scene):
 
         def get_decimal_anim():
             return ChangeDecimalToValue(
-                decimal, partial_products_iter.next(),
+                decimal, next(partial_products_iter),
                 run_time=1,
                 rate_func=squish_rate_func(smooth, 0, 0.5),
             )
@@ -764,21 +766,21 @@ class ShowProduct(Scene):
             y_max=y_max + 0.25,
             y_axis_config={
                 "unit_size": unit_size,
-                "numbers_with_elongated_ticks": range(1, y_max + 1),
+                "numbers_with_elongated_ticks": list(range(1, y_max + 1)),
                 "tick_size": 0.05,
             },
         )
         axes.shift(6 * LEFT + 3 * DOWN - axes.coords_to_point(0, 0))
 
         axes.y_axis.label_direction = LEFT
-        axes.y_axis.add_numbers(*range(1, y_max + 1))
+        axes.y_axis.add_numbers(*list(range(1, y_max + 1)))
         return axes
 
 
 class TeacherShowing(TeacherStudentsScene):
     def construct(self):
         screen = self.screen
-        screen.scale_to_fit_height(4)
+        screen.set_height(4)
         screen.next_to(self.students, UP, MED_LARGE_BUFF, RIGHT)
         self.play(
             ShowCreation(screen),
@@ -855,7 +857,7 @@ class DistanceProductScene(MovingCameraScene):
         self.lighthouses = VGroup()
         for point in self.get_lh_points():
             lighthouse = Lighthouse()
-            lighthouse.scale_to_fit_height(self.lighthouse_height)
+            lighthouse.set_height(self.lighthouse_height)
             lighthouse.move_to(point)
             self.lighthouses.add(lighthouse)
         return self.lighthouses
@@ -887,9 +889,9 @@ class DistanceProductScene(MovingCameraScene):
         self.d_labels = VGroup()
         for i, line in enumerate(self.distance_lines):
             d_label = TexMobject("d_%d" % i)
-            d_label.scale_to_fit_height(self.d_label_height)
+            d_label.set_height(self.d_label_height)
             vect = rotate_vector(line.get_vector(), 90 * DEGREES)
-            vect *= 2.5 * SMALL_BUFF / np.linalg.norm(vect)
+            vect *= 2.5 * SMALL_BUFF / get_norm(vect)
             d_label.move_to(line.get_center() + vect)
             self.d_labels.add(d_label)
         return self.d_labels
@@ -908,10 +910,10 @@ class DistanceProductScene(MovingCameraScene):
                 show_ellipsis=show_ellipsis,
                 include_background_rectangle=self.include_distance_labels_background_rectangle,
             )
-            label.scale_to_fit_height(self.numeric_distance_label_height)
+            label.set_height(self.numeric_distance_label_height)
             max_width = 0.5 * max(line.get_length(), 0.1)
             if label.get_width() > max_width:
-                label.scale_to_fit_width(max_width)
+                label.set_width(max_width)
             angle = (line.get_angle() % TAU) - TAU / 2
             if np.abs(angle) > TAU / 4:
                 angle += np.sign(angle) * np.pi
@@ -931,12 +933,12 @@ class DistanceProductScene(MovingCameraScene):
         stacked_labels = labels.copy()
         for label in stacked_labels:
             label.rotate(-label.angle)
-            label.scale_to_fit_height(self.numeric_distance_label_height)
+            label.set_height(self.numeric_distance_label_height)
         stacked_labels.arrange_submobjects(DOWN)
         stacked_labels.move_to(column_top, UP)
 
         h_line = Line(LEFT, RIGHT)
-        h_line.scale_to_fit_width(1.5 * stacked_labels.get_width())
+        h_line.set_width(1.5 * stacked_labels.get_width())
         h_line.next_to(stacked_labels, DOWN, aligned_edge=RIGHT)
         times = TexMobject("\\times")
         times.next_to(h_line, UP, SMALL_BUFF, aligned_edge=LEFT)
@@ -947,7 +949,7 @@ class DistanceProductScene(MovingCameraScene):
             show_ellipsis=True,
             include_background_rectangle=self.include_distance_labels_background_rectangle,
         )
-        product_decimal.scale_to_fit_height(self.numeric_distance_label_height)
+        product_decimal.set_height(self.numeric_distance_label_height)
         product_decimal.next_to(h_line, DOWN)
         product_decimal.align_to(stacked_labels, RIGHT)
         product_decimal[1].set_color(BLUE)
@@ -1002,7 +1004,7 @@ class DistanceProductScene(MovingCameraScene):
         radius = self.get_radius()
         observer_point = self.get_observer_point(fraction)
         distances = [
-            np.linalg.norm(point - observer_point) / radius
+            get_norm(point - observer_point) / radius
             for point in self.get_lh_points()
         ]
         return reduce(op.mul, distances, 1.0)
@@ -1059,12 +1061,12 @@ class IntroduceDistanceProduct(DistanceProductScene):
         lh_dot_arrows = VGroup(*[
             Arrow(*[
                 interpolate(circle.get_center(), dot.get_center(), a)
-                for a in 0.6, 0.9
+                for a in (0.6, 0.9)
             ], buff=0)
             for dot in lh_dots
         ])
         evenly_space_dots_label = TextMobject("Evenly-spaced \\\\ dots")
-        evenly_space_dots_label.scale_to_fit_width(0.5 * circle.get_width())
+        evenly_space_dots_label.set_width(0.5 * circle.get_width())
         evenly_space_dots_label.move_to(circle)
 
         special_dot = self.special_dot = self.get_observer_dot()
@@ -1101,7 +1103,7 @@ class IntroduceDistanceProduct(DistanceProductScene):
 
         observer = self.get_observer()
         observer.save_state()
-        observer.scale_to_fit_height(2)
+        observer.set_height(2)
         observer.change_mode("happy")
         observer.to_edge(RIGHT)
 
@@ -1129,10 +1131,7 @@ class IntroduceDistanceProduct(DistanceProductScene):
         d_terms.set_color(YELLOW)
         plusses = sum_of_inverse_squares.get_parts_by_tex("+")
         last_term = sum_of_inverse_squares[-6:]
-        non_d_terms = VGroup(*filter(
-            lambda m: m not in d_terms and m not in last_term,
-            sum_of_inverse_squares
-        ))
+        non_d_terms = VGroup(*[m for m in sum_of_inverse_squares if m not in d_terms and m not in last_term])
 
         brace = Brace(sum_of_inverse_squares, DOWN)
         brace_text = brace.get_text("Total intensity of light")
@@ -1282,7 +1281,7 @@ class IntroduceDistanceProduct(DistanceProductScene):
         lights = self.lights
 
         circle.generate_target()
-        circle.target.scale_to_fit_width(2 * self.circle_radius)
+        circle.target.set_width(2 * self.circle_radius)
         circle.target.to_corner(DL)
         self.circle = circle.target
 
@@ -1395,7 +1394,7 @@ class Lemma1(DistanceProductScene):
             self.distance_lines,
             self.numeric_distance_labels,
             self.distance_product_column,
-        ).submobject_family())
+        ).get_family())
         self.play(
             ApplyMethod(
                 observer_angle_tracker.set_value, observer_angle + 0.05 * TAU,
@@ -1521,7 +1520,7 @@ class FromGeometryToAlgebra(DistanceProductScene):
 
     def setup_lights(self):
         circle = self.circle
-        circle.scale_to_fit_height(5, about_edge=DOWN)
+        circle.set_height(5, about_edge=DOWN)
         lights = self.get_lights()
         dots = VGroup(*[Dot(point) for point in self.get_lh_points()])
         for dot, light in zip(dots, lights):
@@ -1547,7 +1546,7 @@ class FromGeometryToAlgebra(DistanceProductScene):
         )
 
         spacing_words = self.spacing_words = TextMobject("Evenly-spaced")
-        spacing_words.scale_to_fit_width(self.get_radius())
+        spacing_words.set_width(self.get_radius())
         spacing_words.move_to(circle)
 
         arrows = self.get_arrows()
@@ -1561,7 +1560,7 @@ class FromGeometryToAlgebra(DistanceProductScene):
         self.play(
             FadeIn(spacing_words),
             arcs_anim,
-            *map(GrowArrow, arrows)
+            *list(map(GrowArrow, arrows))
         )
         self.play(FadeOut(arrows), arcs_anim)
         self.wait()
@@ -1629,7 +1628,7 @@ class FromGeometryToAlgebra(DistanceProductScene):
             arrow.rotate(np.pi, about_point=point)
         outer_arrow = self.outer_arrow = outer_arrows[3].copy()
 
-        values = map(plane.point_to_number, self.get_lh_points())
+        values = list(map(plane.point_to_number, self.get_lh_points()))
         complex_decimal = self.complex_decimal = DecimalNumber(
             values[3],
             num_decimal_places=3,
@@ -1758,7 +1757,7 @@ class FromGeometryToAlgebra(DistanceProductScene):
         )
         self.wait()
         self.add(line_ghost)
-        for i in range(2, self.num_lighthouses) + [0]:
+        for i in list(range(2, self.num_lighthouses)) + [0]:
             anims = [
                 Transform(angle_arc, angle_arcs[i]),
                 Transform(angle_label, angle_labels[i]),
@@ -1787,7 +1786,7 @@ class FromGeometryToAlgebra(DistanceProductScene):
         self.play(
             FadeOut(angle_arc),
             FadeOut(angle_label),
-            *map(ShowCreationThenDestruction, lines)
+            *list(map(ShowCreationThenDestruction, lines))
         )
         self.wait()
 
@@ -1959,8 +1958,8 @@ class PlugObserverIntoPolynomial(DistanceProductScene):
 
     def add_circle_group(self):
         self.circle.set_color(RED)
-        self.circle.scale_to_fit_width(
-            2 * np.linalg.norm(self.plane.number_to_point(1) - self.origin)
+        self.circle.set_width(
+            2 * get_norm(self.plane.number_to_point(1) - self.origin)
         )
         self.circle.move_to(self.origin)
 
@@ -2016,7 +2015,7 @@ class PlugObserverIntoPolynomial(DistanceProductScene):
         dot.match_color(observer)
 
         vect = 2 * DOWN + LEFT
-        vect /= np.linalg.norm(vect)
+        vect /= get_norm(vect)
         arrow = self.arrow = Vector(0.5 * vect)
         arrow.next_to(observer, -vect, buff=SMALL_BUFF)
         arrow.set_color(WHITE)
@@ -2294,7 +2293,7 @@ class PlugObserverIntoPolynomial(DistanceProductScene):
             light[1:].fade(0.5)
         added_lights = self.lights.copy()
         added_lights.rotate(full_angle / 2, about_point=origin)
-        new_lights = VGroup(*it.chain(*zip(self.lights, added_lights)))
+        new_lights = VGroup(*it.chain(*list(zip(self.lights, added_lights))))
         self.num_lighthouses *= 2
         dot.generate_target()
         dot.target.move_to(self.get_circle_point_at_proportion(
@@ -2590,7 +2589,7 @@ class DistanceProductIsChordF(PlugObserverIntoPolynomial):
         fraction_words[0][0].set_color(YELLOW)
         fraction_words.arrange_submobjects(DOWN, SMALL_BUFF, aligned_edge=LEFT)
         fraction_words.next_to(O_dot.label, RIGHT)
-        map(TexMobject.add_background_rectangle, fraction_words)
+        list(map(TexMobject.add_background_rectangle, fraction_words))
 
         f_arc, new_arc = [
             Arc(
@@ -2598,7 +2597,7 @@ class DistanceProductIsChordF(PlugObserverIntoPolynomial):
                 radius=self.get_radius(),
                 color=YELLOW,
             ).shift(circle.get_center())
-            for f in fraction, 0.5
+            for f in (fraction, 0.5)
         ]
         self.add(f_arc)
 
@@ -2616,7 +2615,7 @@ class DistanceProductIsChordF(PlugObserverIntoPolynomial):
 
         chord = Line(*[
             self.get_circle_point_at_proportion(f)
-            for f in 0, fraction
+            for f in (0, fraction)
         ])
         chord.set_stroke(YELLOW)
         chord_f = get_chord_f_label(chord)
@@ -2653,7 +2652,7 @@ class DistanceProductIsChordF(PlugObserverIntoPolynomial):
 
         equals_two_terms = VGroup(*[
             TexMobject("=2").next_to(mob, DOWN, SMALL_BUFF)
-            for mob in chord_half, chord_f_as_product.target
+            for mob in (chord_half, chord_f_as_product.target)
         ])
 
         # Animations
@@ -2769,7 +2768,7 @@ class ProveLemma2(PlugObserverIntoPolynomial):
         q_marks.match_color(product_decimal)
 
         zero_rects = VGroup(
-            *map(SurroundingRectangle, [dot, stacked_labels[0]]))
+            *list(map(SurroundingRectangle, [dot, stacked_labels[0]])))
 
         self.play(
             LaggedStart(ShowCreation, lines),
@@ -2788,7 +2787,7 @@ class ProveLemma2(PlugObserverIntoPolynomial):
         ))
         self.wait()
         self.add_foreground_mobject(zero_rects)
-        self.play(*map(ShowCreation, zero_rects))
+        self.play(*list(map(ShowCreation, zero_rects)))
         self.wait(2)
         self.play(
             VGroup(light_to_remove, zero_rects[0]
@@ -2994,7 +2993,7 @@ class ArmedWithTwoKeyFacts(TeacherStudentsScene, DistanceProductScene):
 
     def construct(self):
         circle1 = self.circle
-        circle1.scale_to_fit_height(1.5)
+        circle1.set_height(1.5)
         circle1.to_corner(UL)
         circle2 = circle1.copy()
         circle2.next_to(circle1, DOWN, MED_LARGE_BUFF)
@@ -3059,7 +3058,7 @@ class Sailor(PiCreature):
         )
         rhombus.set_fill(BLACK, opacity=1)
         rhombus.set_stroke(width=0)
-        rhombus.scale_to_fit_height(sailor_hat.get_height() / 3)
+        rhombus.set_height(sailor_hat.get_height() / 3)
         rhombus.rotate(5 * DEGREES)
         rhombus.move_to(sailor_hat, DR)
         rhombus.shift(0.05 * sailor_hat.get_width() * LEFT)
@@ -3164,7 +3163,7 @@ class KeeperAndSailor(DistanceProductScene, PiCreatureScene):
             self.add_foreground_mobjects(keeper, keeper.dot, keeper.title)
         for pi in observers:
             self.play(
-                pi.scale_to_fit_height, 0.5,
+                pi.set_height, 0.5,
                 pi.next_to, pi.target_point, RIGHT, SMALL_BUFF,
                 pi.dot.move_to, pi.target_point,
                 pi.dot.set_fill, {"opacity": 1},
@@ -3173,7 +3172,7 @@ class KeeperAndSailor(DistanceProductScene, PiCreatureScene):
             )
             if pi is sailor:
                 arcs = self.get_halfway_indication_arcs()
-                self.play(*map(ShowCreationThenDestruction, arcs))
+                self.play(*list(map(ShowCreationThenDestruction, arcs)))
             self.wait()
 
     def write_distance_product_fraction(self):
@@ -3240,12 +3239,12 @@ class KeeperAndSailor(DistanceProductScene, PiCreatureScene):
         new_keeper_dp_decimal.replace(keeper_dp_decimal, dim_to_match=1)
         new_keeper_dp_decimal.set_color(YELLOW)
 
-        self.play(*map(ShowCreation, keeper_lines))
+        self.play(*list(map(ShowCreation, keeper_lines)))
         self.play(ReplacementTransform(
             keeper_lines.copy(), VGroup(fraction[0])
         ))
         self.play(FadeOut(keeper_lines))
-        self.play(*map(ShowCreation, sailor_lines))
+        self.play(*list(map(ShowCreation, sailor_lines)))
         self.play(
             ReplacementTransform(
                 sailor_lines.copy(),
@@ -3353,7 +3352,7 @@ class KeeperAndSailor(DistanceProductScene, PiCreatureScene):
             "K": BLUE,
             "S": YELLOW,
         })
-        product_parts.scale_to_fit_width(0.4 * FRAME_WIDTH)
+        product_parts.set_width(0.4 * FRAME_WIDTH)
         product_parts.next_to(result_fraction, DOWN, LARGE_BUFF, RIGHT)
         product_parts.shift(MED_SMALL_BUFF * RIGHT)
 
@@ -3484,7 +3483,7 @@ class KeeperAndSailor(DistanceProductScene, PiCreatureScene):
         anims += [
             MoveToTarget(part)
             for pi in self.observers
-            for part in pi, pi.dot, pi.title
+            for part in [pi, pi.dot, pi.title]
         ]
 
         anims += added_anims
@@ -3623,7 +3622,7 @@ class KeeperAndSailor(DistanceProductScene, PiCreatureScene):
             "S": YELLOW,
         })
         cw_product_parts.move_to(ratios, RIGHT)
-        cw_ratios = VGroup(*[cw_product_parts[i:i + 3] for i in 9, 5, 1])
+        cw_ratios = VGroup(*[cw_product_parts[i:i + 3] for i in (9, 5, 1)])
         cw_term_rects = self.get_term_rects(cw_ratios)
         cw_limit_fractions = VGroup(
             TexMobject("{2", "\\over", "3}"),
@@ -3699,9 +3698,9 @@ class KeeperAndSailor(DistanceProductScene, PiCreatureScene):
         self.wait()
 
         # Organize fractions
-        fractions = VGroup(*it.chain(*zip(
+        fractions = VGroup(*it.chain(*list(zip(
             limit_fractions, cw_limit_fractions,
-        )))
+        ))))
         fractions.generate_target()
         wallis_product = VGroup()
         dots = VGroup()
@@ -3849,13 +3848,13 @@ class KeeperAndSailor(DistanceProductScene, PiCreatureScene):
             return fraction_tracker.get_value()
 
         def get_ks_distance():
-            return np.linalg.norm(keeper.dot.get_center() - sailor.dot.get_center())
+            return get_norm(keeper.dot.get_center() - sailor.dot.get_center())
 
         def update_title_heights(*titles):
             for title in titles:
                 if not hasattr(title, "original_height"):
                     title.original_height = title.get_height()
-                title.scale_to_fit_height(min(
+                title.set_height(min(
                     title.original_height,
                     0.8 * get_ks_distance(),
                 ))
@@ -3871,7 +3870,7 @@ class KeeperAndSailor(DistanceProductScene, PiCreatureScene):
                 if k == 0:
                     continue
                 light = lights[k]
-                light = light.scale_to_fit_width(
+                light = light.set_width(
                     (get_fraction() / start_fraction) * initial_light_width
                 )
                 point = self.get_circle_point_at_proportion(k * get_fraction())
@@ -3957,7 +3956,7 @@ class KeeperAndSailor(DistanceProductScene, PiCreatureScene):
         keeper = self.keeper = PiCreature(color=self.keeper_color).flip()
         sailor = self.sailor = Sailor()
         observers = self.observers = VGroup(keeper, sailor)
-        observers.scale_to_fit_height(3)
+        observers.set_height(3)
         keeper.shift(4 * RIGHT + 2 * DOWN)
         sailor.shift(4 * RIGHT + 2 * UP)
         return VGroup(keeper, sailor)
@@ -3988,7 +3987,7 @@ class KeeperAndSailor(DistanceProductScene, PiCreatureScene):
         for light, label in zip(self.lights, labels):
             point = light[0].get_center()
             vect = (point - center)
-            norm = np.linalg.norm(vect)
+            norm = get_norm(vect)
             buff = label.get_height()
             vect *= (norm + buff) / norm
             label.move_to(center + vect)
@@ -4052,13 +4051,13 @@ class MentionJohnWallis(Scene):
         name.next_to(product, DOWN, MED_LARGE_BUFF)
 
         image = ImageMobject("John_Wallis")
-        image.scale_to_fit_height(3)
+        image.set_height(3)
         image.next_to(name, DOWN)
         image_name = TextMobject("John Wallis")
         image_name.next_to(image, DOWN)
 
         infinity = TexMobject("\\infty")
-        infinity.scale_to_fit_height(1.5)
+        infinity.set_height(1.5)
         infinity.next_to(image, RIGHT, MED_LARGE_BUFF)
 
         self.add(product)
@@ -4254,7 +4253,7 @@ class HowThisArgumentRequiresCommunitingLimits(PiCreatureScene):
 
     def create_pi_creatures(self):
         group = VGroup(PiCreature(color=GREY), Mortimer())
-        group.scale_to_fit_height(2)
+        group.set_height(2)
         group.arrange_submobjects(RIGHT, buff=4)
         group.to_edge(DOWN)
         return group
@@ -4279,14 +4278,14 @@ class NonCommunitingLimitsExample(Scene):
         rows.center().to_edge(UP)
         rows[-1].shift(MED_SMALL_BUFF * UP)
 
-        row_rects = VGroup(*map(SurroundingRectangle, rows[:-1]))
+        row_rects = VGroup(*list(map(SurroundingRectangle, rows[:-1])))
         row_rects.set_color(YELLOW)
 
         columns = VGroup(*[
             VGroup(*[row[0][i] for row in rows])
             for i in range(len(rows[0][0]))
         ])
-        column_rects = VGroup(*map(SurroundingRectangle, columns))
+        column_rects = VGroup(*list(map(SurroundingRectangle, columns)))
         column_rects.set_color(BLUE)
 
         row_arrows = VGroup(*[
@@ -4331,7 +4330,7 @@ class NonCommunitingLimitsExample(Scene):
             LaggedStart(Write, row_arrows),
             LaggedStart(
                 ReplacementTransform, rows[:-1].copy(),
-                lambda r: (r, row_products_iter.next())
+                lambda r: (r, next(row_products_iter))
             )
         )
         self.wait()
@@ -4347,7 +4346,7 @@ class NonCommunitingLimitsExample(Scene):
             LaggedStart(Write, column_arrows),
             LaggedStart(
                 ReplacementTransform, columns.copy(),
-                lambda c: (c, column_limit_iter.next())
+                lambda c: (c, next(column_limit_iter))
             )
         )
         self.wait()
@@ -4363,7 +4362,7 @@ class NonCommunitingLimitsExample(Scene):
         terms = [1] * (self.num_terms_per_row)
         if seven_index < len(terms):
             terms[seven_index] = 7
-        row = VGroup(*map(Integer, terms))
+        row = VGroup(*list(map(Integer, terms)))
         self.arrange_row(row)
         dots = self.get_row_dots(row)
 
@@ -4400,7 +4399,7 @@ class DelicacyInIntermixingSeries(Scene):
                 ["{%d" % (2 * x), "\\over", "%d}" % (2 * x + u), "\\cdot"]
                 for x in range(1, n_terms + 1)
             ]))
-            for u in -1, 1
+            for u in (-1, 1)
         ])
         top_product.set_color(GREEN)
         bottom_product.set_color(BLUE)
@@ -4465,9 +4464,9 @@ class DelicacyInIntermixingSeries(Scene):
         while True:
             try:
                 new_terms = [
-                    bottom_parts_iter.next(),
-                    top_parts_iter.next(),
-                    top_parts_iter.next(),
+                    next(bottom_parts_iter),
+                    next(top_parts_iter),
+                    next(top_parts_iter),
                 ]
                 movers1.add(*new_terms)
             except StopIteration:
@@ -4495,9 +4494,9 @@ class DelicacyInIntermixingSeries(Scene):
         randy.flip()
         randy.to_corner(DR)
 
-        movers2 = VGroup(*it.chain(*zip(
+        movers2 = VGroup(*it.chain(*list(zip(
             top_product.parts, bottom_product.parts
-        )))
+        ))))
         final_product = VGroup()
         for mover in movers2:
             mover.final_position = mover.copy()
@@ -4593,7 +4592,7 @@ class KeeperAndSailorForSineProduct(KeeperAndSailor):
 
         def warp_func(point):
             vect = point - center
-            norm = np.linalg.norm(vect)
+            norm = get_norm(vect)
             new_norm = norm + 0.5 * (radius - norm)
             return center + new_norm * vect / norm
         brace1.apply_function(warp_func)
@@ -4761,7 +4760,7 @@ class KeeperAndSailorForSineProduct(KeeperAndSailor):
         ])
         limits = VGroup(*[
             TexMobject("{%d" % k, "\\over", "%d" % k, "-", "f}")
-            for k in -2, -1, 1, 2, 3
+            for k in (-2, -1, 1, 2, 3)
         ])
         for limit, arrow in zip(limits, limit_arrows):
             limit.set_color_by_tex("f", GREEN)
@@ -4795,7 +4794,7 @@ class KeeperAndSailorForSineProduct(KeeperAndSailor):
                     run_time=3,
                     lag_ratio=0.1
                 )
-                for lines in keeper_lines, sailor_lines
+                for lines in (keeper_lines, sailor_lines)
             ]
         )
         self.wait()
@@ -4909,7 +4908,7 @@ class KeeperAndSailorForSineProduct(KeeperAndSailor):
             FadeOut(product_lines),
             *[
                 ReplacementTransform(product[i], one_minus_f_over_k[j])
-                for i, j in (3, 1), (4, 2), (5, 3), (2, 4), (1, 5)
+                for i, j in [(3, 1), (4, 2), (5, 3), (2, 4), (1, 5)]
             ]
         )
         self.wait()
@@ -4939,7 +4938,7 @@ class KeeperAndSailorForSineProduct(KeeperAndSailor):
             Mortimer()
         )
         pi_creatures.arrange_submobjects(RIGHT, LARGE_BUFF)
-        pi_creatures.scale_to_fit_height(1)
+        pi_creatures.set_height(1)
         pi_creatures.next_to(rect, DOWN)
         for pi in pi_creatures:
             pi.change("hooray", rect)
@@ -4980,7 +4979,7 @@ class Conclusion(TeacherStudentsScene):
         sine_formula.shift_onto_screen()
 
         euler = ImageMobject("Euler")
-        euler.scale_to_fit_height(2.5)
+        euler.set_height(2.5)
         basel_problem = TexMobject(
             "\\frac{1}{1^2} + ",
             "\\frac{1}{2^2} + ",
@@ -5215,29 +5214,31 @@ class Thumbnail(DistanceProductScene):
         product.scale(1.5)
         product.move_to(2.5 * UP)
         frac_lines = product.get_parts_by_tex("\\over")
-        frac_indices = map(product.index_of_part, frac_lines)
+        frac_indices = list(map(product.index_of_part, frac_lines))
         parts = VGroup(*[
             product[i-1:i+2]
             for i in frac_indices
         ])
-        parts[::2].set_color(GREEN)
-        parts[1::2].set_color(BLUE)
+        parts[::2].set_color(WHITE)
+        parts[1::2].set_color(WHITE)
         parts[-1].set_color(WHITE)
-        parts[-1].set_stroke(RED, 1)
+        parts[-1].set_background_stroke(color=YELLOW, width=3)
         parts[-1].scale(1.5, about_edge=LEFT)
+        product[-4:].next_to(product[:-4], DOWN, MED_LARGE_BUFF)
+        product.scale(1.2).center().to_edge(UP)
 
-        new_proof = TextMobject("New proof")
-        new_proof.scale(2.5)
-        new_proof.set_color(YELLOW)
-        new_proof.set_stroke(RED, 0.75)
-        new_proof.next_to(product, DOWN, MED_LARGE_BUFF)
+        # new_proof = TextMobject("New proof")
+        # new_proof.scale(2.5)
+        # new_proof.set_color(YELLOW)
+        # new_proof.set_stroke(RED, 0.75)
+        # new_proof.next_to(product, DOWN, MED_LARGE_BUFF)
 
-        circle = self.circle = Circle(radius=8, color=RED)
+        circle = self.circle = Circle(radius=8, color=YELLOW)
         circle.move_to(3 * DOWN, DOWN)
         bottom_dot = Dot(color=BLUE)
         bottom_dot.move_to(circle.get_bottom())
         observer = PiCreature(mode="pondering")
-        observer.scale_to_fit_height(0.5)
+        observer.set_height(0.5)
         observer.next_to(bottom_dot, DOWN)
 
         lights = VGroup()
@@ -5261,7 +5262,7 @@ class Thumbnail(DistanceProductScene):
         self.add(circle)
         self.add(lights)
         self.add(product)
-        self.add(new_proof)
+        # self.add(new_proof)
         self.add(bottom_dot, observer)
 
 

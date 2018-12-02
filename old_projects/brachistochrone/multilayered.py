@@ -2,8 +2,8 @@ import numpy as np
 import itertools as it
 
 from big_ol_pile_of_manim_imports import *
-from brachistochrone.light import PhotonScene
-from brachistochrone.curves import *
+from old_projects.brachistochrone.light import PhotonScene
+from old_projects.brachistochrone.curves import *
 
 
 class MultilayeredScene(Scene):
@@ -23,7 +23,7 @@ class MultilayeredScene(Scene):
         height = float(self.total_glass_height)/n_layers
         rgb_pair = [
             np.array(Color(color).get_rgb())
-            for color in self.top_color, self.bottom_color
+            for color in (self.top_color, self.bottom_color)
         ]
         rgb_range = [
             interpolate(*rgb_pair+[x])
@@ -253,11 +253,11 @@ class ShowLayerVariables(MultilayeredScene, PhotonScene):
                 )
                 for mob, start in zip(mobs, starts)
             ]
-            for mobs in start_ys, braces
+            for mobs in (start_ys, braces)
         ]))
         self.wait()
 
-        triplets = zip(v_equations, start_ys, end_ys)
+        triplets = list(zip(v_equations, start_ys, end_ys))
         anims = []
         for v_eq, start_y, end_y in triplets:
             anims += [

@@ -1,5 +1,5 @@
 from big_ol_pile_of_manim_imports import *
-from eola.chapter9 import Jennifer, You
+from old_projects.eola.chapter9 import Jennifer, You
 
 class Chapter0(LinearTransformationScene):
     CONFIG = {
@@ -21,7 +21,7 @@ class Chapter1(Scene):
         array.set_color(TEAL)
         everyone = VMobject(arrow, vs, array)
         everyone.arrange_submobjects(RIGHT, buff = 0.5)
-        everyone.scale_to_fit_height(4)
+        everyone.set_height(4)
         self.add(everyone)
 
 class Chapter2(LinearTransformationScene):
