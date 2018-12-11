@@ -1,6 +1,7 @@
 
 
 import numpy as np
+import operator as op
 
 from PIL import Image
 
@@ -12,7 +13,7 @@ from utils.bezier import interpolate
 from utils.color import color_to_int_rgb
 from utils.config_ops import digest_config
 from utils.images import get_full_raster_image_path
-
+from functools import reduce
 
 class AbstractImageMobject(Mobject):
     """
@@ -105,6 +106,11 @@ class ImageMobject(AbstractImageMobject):
         self.pixel_array = interpolate(
             mobject1.pixel_array, mobject2.pixel_array, alpha
         ).astype(self.pixel_array_dtype)
+
+    def shift(self, *vectors):
+        total_vector = reduce(op.add, vectors)
+        for point in self.points:
+            point += total_vector
 
 # TODO, add the ability to have the dimensions/orientation of this
 # mobject more strongly tied to the frame of the camera it contains,
