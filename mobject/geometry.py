@@ -736,17 +736,23 @@ class Square(Rectangle):
 class RoundedRectangle(Rectangle):
     CONFIG = {
         "corner_radius": 0.5,
-        "close_new_points": True
+        "close_new_points": True,
+        "num_anchors_in_corners": 9
     }
 
     def generate_points(self):
         y, x = self.height / 2., self.width / 2.
         r = self.corner_radius
 
-        arc_ul = ArcBetweenPoints(x * LEFT + (y - r) * UP, (x - r) * LEFT + y * UP, angle = -TAU/4)
-        arc_ur = ArcBetweenPoints((x - r) * RIGHT + y * UP, x * RIGHT + (y - r) * UP, angle = -TAU/4)
-        arc_lr = ArcBetweenPoints(x * RIGHT + (y - r) * DOWN, (x - r) * RIGHT + y * DOWN, angle = -TAU/4)
-        arc_ll = ArcBetweenPoints(x * LEFT + (y - r) * DOWN, (x - r) * LEFT + y * DOWN, angle = TAU/4) # sic! bug in ArcBetweenPoints?
+        arc_ul = ArcBetweenPoints(x * LEFT + (y - r) * UP, (x - r) * LEFT + y * UP,
+            angle = -TAU/4, num_anchors = self.num_anchors_in_corners)
+        arc_ur = ArcBetweenPoints((x - r) * RIGHT + y * UP, x * RIGHT + (y - r) * UP,
+            angle = -TAU/4, num_anchors = self.num_anchors_in_corners)
+        arc_lr = ArcBetweenPoints(x * RIGHT + (y - r) * DOWN, (x - r) * RIGHT + y * DOWN,
+            angle = -TAU/4, num_anchors = self.num_anchors_in_corners)
+        arc_ll = ArcBetweenPoints(x * LEFT + (y - r) * DOWN, (x - r) * LEFT + y * DOWN,
+        angle = TAU/4, num_anchors = self.num_anchors_in_corners)
+            # last angle: sic! bug in ArcBetweenPoints?
         
         points = arc_ul.points
         points = np.append(points,np.array([y * UP]), axis = 0)

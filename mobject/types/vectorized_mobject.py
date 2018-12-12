@@ -48,6 +48,11 @@ class VMobject(Mobject):
         "shade_in_3d": False,
     }
 
+    def __init__(self, *args, **kwargs):
+        Mobject.__init__(self, *args, **kwargs)
+        self.sampled_lengths = []
+        self.sampled_alphas = []
+
     def get_group_class(self):
         return VGroup
 
@@ -447,7 +452,6 @@ class VMobject(Mobject):
         """
         for submob in self.family_members_with_points():
             anchors, handles1, handles2 = submob.get_anchors_and_handles()
-            # print len(anchors), len(handles1), len(handles2)
             a_to_h1 = handles1 - anchors[:-1]
             a_to_h2 = handles2 - anchors[1:]
             handles1 = anchors[:-1] + factor * a_to_h1
@@ -481,6 +485,129 @@ class VMobject(Mobject):
 
     def get_anchors(self):
         return self.points[::3]
+
+    def get_proportional_length(self, alpha):
+        total_length = 0
+        points = self.points
+        anchors = self.get_anchors()[:-1]
+        dt = 0.001
+        p0, p1, p2, p3 = ORIGIN, ORIGIN, ORIGIN, ORIGIN
+        index = 0
+
+        for i in range(int(alpha*len(anchors))):
+            p0 = points[3*i]
+            p1 = points[3*i+1]
+            p2 = points[3*i+2]
+            p3 = points[3*i+3]
+            for t in np.arange(0,1,dt):
+                b_prime = -3*(1-t)**2 * p0 \
+                        + (3*(1-t)**2 - 6*t*(1-t)) * p1 \
+                        + (-3*t**2 + 6*t*(1-t)) * p2 \
+                        + 3*t**2 * p3
+                dl = (b_prime[0]**2 + b_prime[1]**2 + b_prime[2]**2)**0.5 * dt
+                total_length += dl
+            index = i + 1
+
+        remaining_t = alpha*len(anchors) - int(alpha*len(anchors))
+        if index == len(anchors):
+            return total_length
+        p0 = points[3*index]
+        p1 = points[3*index+1]
+        p2 = points[3*index+2]
+        p3 = points[3*index+3]
+        for t in np.arange(0,remaining_t,dt):
+            b_prime = -3*(1-t)**2 * p0 \
+                        + (3*(1-t)**2 - 6*t*(1-t)) * p1 \
+                        + (-3*t**2 + 6*t*(1-t)) * p2 \
+                        + 3*t**2 * p3
+            dl = (b_prime[0]**2 + b_prime[1]**2 + b_prime[2]**2)**0.5 * dt
+            total_length += dl
+
+        return total_length
+
+    def get_length(self):
+        return self.get_proportional_length(1)
+
+    def get_length_derivative(self, alpha):
+        # helper for get_proportion_from_length
+        da = 0.01
+        if alpha == 0:
+            da0, da1 = 0, da
+        elif alpha == 1:
+            da0, da1 = -da, 0
+        else:
+            da0, da1 = -da, da
+        l0 = self.get_proportional_length(alpha + da0)
+        l1 = self.get_proportional_length(alpha + da1)
+        return (l1 - l0)/(da1 - da0)
+
+    def get_proportion_from_length(self, length):
+
+        method = 'piecewise_linear'
+        # Newton is broken or too slow
+
+        if method == 'piecewise_linear':
+            ### PIECEWISE LINEAR INTERPOPLATION ###
+            if self.sampled_lengths == []:
+                da = 0.003
+                self.sampled_alphas = np.arange(0,1,da)
+                self.sampled_lengths = []
+                for alpha in self.sampled_alphas:
+                 self.sampled_lengths.append(self.get_proportional_length(alpha))
+                 print('resampling, ' + str(int(alpha*100)) + ' % done' )
+                
+
+            index = 0
+            for (i,sampled_length) in enumerate(self.sampled_lengths):
+                if sampled_length >= length:
+                    index = i
+                    break
+            alpha0, alpha1 = self.sampled_alphas[i - 1], self.sampled_alphas[i]
+            length0, length1 = self.sampled_lengths[i - 1], self.sampled_lengths[i]
+            t = (length - length0)/(length1 - length0)
+            alpha = (1-t)*alpha0 + t*alpha1
+            return alpha
+
+        elif method == 'newton':
+            ### NEWTON'S METHOD ###
+            # first sample alphas to get a good starting point
+            da = 0.01
+            lengths = [self.get_proportional_length(alpha)
+                for alpha in np.arange(0,1,da)]
+            l2errors = [(sampled_length - length)**2 for sampled_length in lengths]
+            i = np.argmin(l2errors)
+            alpha = da * i
+            # invert the function alpha -> length using Newton's method
+            alpha_err = 1
+            used_alphas = [alpha]
+            while (alpha_err > 1e-4):
+                l = self.get_proportional_length(alpha)
+                dlda = self.get_length_derivative(alpha)
+                if (dlda == 0):
+                    return alpha # stationary point
+                alpha_err = np.abs((l - length)/dlda)
+                alpha -= (l - length)/dlda
+                for used_alpha in used_alphas:
+                    if (np.abs(used_alpha - alpha) < 1e-4):
+                        return alpha
+                used_alphas.append(alpha)
+            return alpha
+
+        else:
+            raise 'Unknown resampling method'
+
+    def resample_by_arc_length(self, nb_anchors = 100, density = 0, method='piecewise_linear'):
+        length = self.get_length()
+        if density > 0:
+            nb_anchors = length * density
+        lengths = np.linspace(0, length, nb_anchors)
+        alphas = list(map(self.get_proportion_from_length, lengths))
+        new_anchors = list(map(self.point_from_proportion, alphas))
+        right_handles, left_handles = get_smooth_handle_points(new_anchors)
+        self.points = np.ndarray((3*len(new_anchors)-2,3))
+        self.points[::3] = new_anchors
+        self.points[1::3] = right_handles
+        self.points[2::3] = left_handles
 
     def get_points_defining_boundary(self):
         return np.array(list(it.chain(*[

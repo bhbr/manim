@@ -107,11 +107,6 @@ class ImageMobject(AbstractImageMobject):
             mobject1.pixel_array, mobject2.pixel_array, alpha
         ).astype(self.pixel_array_dtype)
 
-    def shift(self, *vectors):
-        total_vector = reduce(op.add, vectors)
-        for point in self.points:
-            point += total_vector
-
 # TODO, add the ability to have the dimensions/orientation of this
 # mobject more strongly tied to the frame of the camera it contains,
 # in the case where that's a MovingCamera
