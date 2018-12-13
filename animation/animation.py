@@ -59,7 +59,7 @@ class Animation(object):
             self.update_submobject(*list(mobs) + [sub_alpha])
         return self
 
-    def update_submobject(self, submobject, starting_sumobject, alpha):
+    def update_submobject(self, submobject, starting_submobject, alpha):
         # Typically ipmlemented by subclass
         pass
 

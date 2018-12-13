@@ -86,6 +86,62 @@ class Draw(Animation):
         self.n_visible_drops = n_newly_visible_drops
 
 
+class Button(Circle):
+    CONFIG = {
+        'fill_color': BLUE_E,
+        'fill_opacity': 1,
+        'stroke_opacity': 0,
+        'radius': 0.3,
+        'logo_file': None
+    }
+
+    def __init__(self, **kwargs):
+        Circle.__init__(self, **kwargs)
+        if self.logo_file == None:
+            self.logo = Mobject()
+        else:
+            self.logo = ImageMobject(self.logo_file)
+        scale_factor = 0.7*2*self.radius / self.logo.get_width()
+        self.logo.scale_in_place(scale_factor)
+        self.logo.move_to(self)
+        self.add(self.logo)
+
+class SegmentButton(Button):
+    CONFIG = {
+        'logo_file': 'segment'
+    }
+
+class Touch(VGroup):
+    CONFIG = {
+        'radius': 0.35,
+        'nb_rings': 30,
+        'color': ORANGE,
+        'max_opacity': 0.5
+    }
+
+    def __init__(self, **kwargs):
+        VGroup.__init__(self, **kwargs)
+        dr = self.radius/self.nb_rings
+        for r in np.arange(0,self.radius,dr):
+            alpha = r/self.radius
+            ring = Annulus(inner_radius=r, outer_radius=r+dr,
+                fill_color = self.color, fill_opacity = alpha * self.max_opacity)
+            self.add(ring)
+
+class TouchDown(Animation):
+    CONFIG = {
+        'rate_func': (lambda x: x)
+    }
+    def update_mobject(self, alpha):
+        nb_rings = len(self.mobject.submobjects)
+        total_radius = self.mobject.submobjects[-1].outer_radius
+        for (i,ring) in enumerate(self.mobject.submobjects):
+            opacity = 0
+            if i < alpha*nb_rings:
+                opacity = (1 - (alpha*nb_rings - i)/nb_rings) * self.mobject.max_opacity
+            ring.set_fill(opacity=opacity)
+
+
 class PencilScene(Scene):
 
     def construct(self):
@@ -94,17 +150,21 @@ class PencilScene(Scene):
         self.add_foreground_mobject(self.frame)
         self.add_foreground_mobject(self.pencil)
         self.pencil.point_to(2*UP + 3*LEFT)
-        pi = TexMobject('\pi', stroke_width = 0).scale(12).submobjects[0].submobjects[0]
+        two = SVGMobject(file_name='two').submobjects[0].scale(1)
+        #two.resample_by_arc_length(density = DROP_DENSITY)        
+        line = DrawnCurve(two)
 
-        pi.resample_by_arc_length(density = DROP_DENSITY)
-        line = DrawnCurve(pi)
+        button1 = SegmentButton().move_to(4.2*LEFT + 3*DOWN)
+        self.add(button1)
 
-#        self.add(line)        
-        self.play(
-            Draw(self.pencil, line,
-                canvas = self.frame,
-                run_time = 6,
-                rate_func = lambda x: x)
-        )
+        touch = Touch()
 
+        # self.play(
+        #     Draw(self.pencil, line,
+        #         canvas = self.frame,
+        #         run_time = 3,
+        #         rate_func = lambda x: x)
+        # )
+
+        self.play(TouchDown(touch, run_time = 0.1))
 
