@@ -67,8 +67,10 @@ class Succession(Animation):
 
         for arg in args:
             if isinstance(arg, Animation):
+                print('mobject now pointing at', arg.mobject.get_center())
                 animations.append(arg)
                 arg.update(1)
+                print('now we point at', arg.mobject.get_center())
                 invoke_curr_class(state)
             elif isinstance(arg, type) and issubclass(arg, Animation):
                 invoke_curr_class(state)
@@ -79,7 +81,9 @@ class Succession(Animation):
                 state["curr_class_args"].append(arg)
         invoke_curr_class(state)
         for anim in animations:
+            print('here we point at', anim.mobject.get_center())
             anim.update(0)
+            print('and here we point at', anim.mobject.get_center())
 
         animations = [x for x in animations if not(x.empty)]
 
@@ -136,6 +140,7 @@ class Succession(Animation):
 
         for i in range(index):
             self.animations[i].update(1)
+            print(self.animations[i], '.update(1)')
 
         self.current_anim_index = index
         self.current_alpha = self.critical_alphas[index]

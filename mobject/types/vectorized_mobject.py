@@ -486,7 +486,7 @@ class VMobject(Mobject):
     def get_anchors(self):
         return self.points[::3]
 
-    def get_proportional_length(self, alpha):
+    def get_connected_proportional_length(self, alpha):
         total_length = 0
         points = self.points
         anchors = self.get_anchors()[:-1]
@@ -525,8 +525,31 @@ class VMobject(Mobject):
 
         return total_length
 
+    def get_connected_length(self):
+        return self.get_connected_proportional_length(1)
+
+    def get_proportional_length(self, alpha):
+        mobs = self.get_family()
+        nb_mobs = len(mobs)
+        index = int(alpha*nb_mobs)
+        remaining_alpha = alpha - index/nb_mobs
+        length = sum([mob.get_connected_length() for mob in mobs[:index]])
+        if alpha == 1:
+            print(self)
+            print('index', index)
+            print('remaining', remaining_alpha)
+            print('length', length)
+        if index != nb_mobs:
+            length += mobs[index].get_connected_proportional_length(remaining_alpha)
+            if alpha == 0:
+                print('one more', length)
+        return length
+
     def get_length(self):
-        return self.get_proportional_length(1)
+        length = self.get_proportional_length(1)
+        for submob in self.submobjects:
+            length += submob.get_length()
+        return length
 
     def get_length_derivative(self, alpha):
         # helper for get_proportion_from_length
@@ -598,6 +621,8 @@ class VMobject(Mobject):
 
     def resample_by_arc_length(self, nb_anchors = 100, density = 0, method='piecewise_linear'):
         length = self.get_length()
+        if length == 0:
+            return
         if density > 0:
             nb_anchors = length * density
         lengths = np.linspace(0, length, nb_anchors)
