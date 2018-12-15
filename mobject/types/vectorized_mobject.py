@@ -486,7 +486,7 @@ class VMobject(Mobject):
     def get_anchors(self):
         return self.points[::3]
 
-    def get_connected_proportional_length(self, alpha):
+    def get_proportional_main_length(self, alpha):
         total_length = 0
         points = self.points
         anchors = self.get_anchors()[:-1]
@@ -525,31 +525,22 @@ class VMobject(Mobject):
 
         return total_length
 
-    def get_connected_length(self):
-        return self.get_connected_proportional_length(1)
+    def get_main_length(self):
+        return self.get_proportional_main_length(1)
 
     def get_proportional_length(self, alpha):
         mobs = self.get_family()
         nb_mobs = len(mobs)
         index = int(alpha*nb_mobs)
         remaining_alpha = alpha - index/nb_mobs
-        length = sum([mob.get_connected_length() for mob in mobs[:index]])
-        if alpha == 1:
-            print(self)
-            print('index', index)
-            print('remaining', remaining_alpha)
-            print('length', length)
+        length = sum([mob.get_main_length() for mob in mobs[:index]])
+
         if index != nb_mobs:
-            length += mobs[index].get_connected_proportional_length(remaining_alpha)
-            if alpha == 0:
-                print('one more', length)
+            length += mobs[index].get_proportional_main_length(remaining_alpha)
         return length
 
     def get_length(self):
-        length = self.get_proportional_length(1)
-        for submob in self.submobjects:
-            length += submob.get_length()
-        return length
+        return self.get_proportional_length(1)
 
     def get_length_derivative(self, alpha):
         # helper for get_proportion_from_length
@@ -566,6 +557,9 @@ class VMobject(Mobject):
 
     def get_proportion_from_length(self, length):
 
+        if length == 0:
+            return 0
+
         method = 'piecewise_linear'
         # Newton is broken or too slow
 
@@ -579,7 +573,6 @@ class VMobject(Mobject):
                  self.sampled_lengths.append(self.get_proportional_length(alpha))
                  print('resampling, ' + str(int(alpha*100)) + ' % done' )
                 
-
             index = 0
             for (i,sampled_length) in enumerate(self.sampled_lengths):
                 if sampled_length >= length:

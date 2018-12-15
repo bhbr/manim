@@ -1,6 +1,7 @@
 from big_ol_pile_of_manim_imports import *
 
-DROP_DENSITY = 100
+PENCIL_WIDTH = 0.04
+DROP_DENSITY = 200
 
 class Pencil(ImageMobject):
     CONFIG = {
@@ -20,51 +21,80 @@ class Pencil(ImageMobject):
         self.tip = target
         return self
 
-class Drawing(VMobject):
+class Stroke(VMobject):
     CONFIG = {
         'fill_color': BLACK,
-        'stroke_opacity': 0,
-        'width': 0.02,
-        'drop_density': 100, # per unit length
+        'fill_opacity': 1.0,
+        'stroke_opacity': 1.0,
+        'width': PENCIL_WIDTH,
+        'drop_density': DROP_DENSITY, # per unit length
         'uniform': False
     }
 
     def __init__(self, stencil, **kwargs):
-        VMobject.__init__(self, **kwargs)
+        self.stencil = stencil.copy()
+        self.stencil.submobjects = []
+        VMobject.__init__(self, stencil = self.stencil, **kwargs)
+        self.length = self.get_length()
         if self.uniform:
-            self.resample_by_arc_length(density = self.drop_density)
-        self.length = stencil.get_length()
+            self.stencil.resample_by_arc_length(density = self.drop_density)
         nb_anchors = int(self.drop_density * self.length) + 1
-        self.points = stencil.points
+        nb_new_anchors = nb_anchors - len(self.stencil.get_anchors())
 
-        if len(self.points) != 0:
-            self.insert_n_anchor_points(nb_anchors)
+        if len(self.stencil.points) != 0:
+            self.stencil.insert_n_anchor_points(nb_new_anchors)
             self.set_fill(opacity=0)
-            for point in self.get_anchors():
-                circle = Dot(
+            for point in self.stencil.get_anchors():
+                drop = Dot(
                     radius=0.5*self.width,
                     fill_color=self.fill_color
                 )
-                circle.move_to(point + self.width/10 * np.random.randn(3))
-                self.add(circle)
+                drop.move_to(point + self.width/10 * np.random.randn(3))
+                self.add(drop)
 
-        for submob in stencil.submobjects:
-            self.add(Drawing(submob, **kwargs))
+    def get_length(self):
+        return self.stencil.get_main_length()
 
-    def get_curve_family(self):
-        sub_curve_families = list(map(Drawing.get_curve_family, self.submobjects))
-        all_curves = [self] + list(it.chain(*sub_curve_families))
-        all_curves = list(filter(lambda x: isinstance(x, Drawing), all_curves))
-        return remove_list_redundancies(all_curves)
+    def get_proportional_length(self, alpha):
+        return self.stencil.get_proportional_length(alpha)
 
-class DrawnLine(Drawing):
+    def point_from_proportion(self, alpha):
+        return self.stencil.point_from_proportion(alpha)
+
+class DrawnLine(Stroke):
     CONFIG = {
         'arc_angle': 0 # if it's a circular arc, = 0 if it's a straight line
     }
 
     def __init__(self, start, end, **kwargs):
         self_as_line = Line(start, end, **kwargs)
-        Drawing.__init__(self, self_as_line, **kwargs)
+        Stroke.__init__(self, self_as_line.points, **kwargs)
+
+
+class Drawing(VGroup):
+    CONFIG = {
+        'fill_color': BLACK,
+        'fill_opacity': 1.0,
+        'stroke_opacity': 1.0,
+        'width': PENCIL_WIDTH,
+        'drop_density': DROP_DENSITY, # per unit length
+        'uniform': False
+    }
+
+    def __init__(self, mobject, **kwargs):
+        VGroup.__init__(self, **kwargs)
+        for mob in mobject.get_family():
+            if (len(mob.points) != 0):
+                stroke = Stroke(mob, uniform = self.uniform)
+                self.add(stroke)
+
+    def get_length(self):
+        lengths = [stroke.get_length() for stroke in self.get_strokes()]
+        return sum(lengths)
+
+
+    def get_strokes(self):
+        return self.submobjects
 
 
 class MovePencilTo(Transform):
@@ -74,23 +104,26 @@ class MovePencilTo(Transform):
         MoveToTarget.__init__(self, pencil, **kwargs)
 
 
-class ContinuousDraw(Animation):
+class DrawStroke(Animation):
     CONFIG = {
         'color': BLACK,
         'canvas': None
     }
 
-    def __init__(self, pencil, curve, **kwargs):
-        if len(curve.submobjects) == 0:
+    def __init__(self, pencil, stroke, **kwargs):
+        if stroke.length == 0:
             EmptyAnimation.__init__(self, **kwargs)
             return
         Animation.__init__(self, pencil, **kwargs)
         self.pencil = pencil
-        self.curve = curve
-        self.drops = self.curve.submobjects
+        self.stroke = stroke
+        self.drops = self.stroke.submobjects
+
         for drop in self.drops:
+            drop.set_stroke(opacity=0, width=0)
             drop.set_fill(opacity=0)
-        self.canvas.add(self.curve)
+
+        self.canvas.add(self.stroke)
         self.n_drops = len(self.drops)
         self.n_visible_drops = 0
         self.update(0)
@@ -98,9 +131,7 @@ class ContinuousDraw(Animation):
     def update_mobject(self, alpha):
         if alpha == 0 or alpha > 1:
             return
-        if len(self.curve.points) == 0:
-            return
-        tip_point = self.curve.point_from_proportion(alpha)
+        tip_point = self.stroke.stencil.point_from_proportion(alpha)
         self.pencil.point_to(tip_point)
         n_newly_visible_drops = int(alpha * self.n_drops)
         for drop in self.drops[self.n_visible_drops:n_newly_visible_drops]:
@@ -173,21 +204,21 @@ class PencilScene(Scene):
 
     def play_drawing(self, drawing, run_time = 1):
         PENCIL_MOVE_TIME = 0.5
-        curves_to_draw = drawing.get_curve_family()
-        lengths = [curve.length for curve in curves_to_draw]
-        total_length = sum(lengths)
+        strokes_to_draw = [stroke for stroke in drawing.get_strokes()
+            if stroke.get_length() > 0 and len(stroke.stencil.submobjects) == 0]
+        lengths = [stroke.get_length() for stroke in strokes_to_draw]
+        total_length = drawing.get_length()
         total_run_time = run_time + PENCIL_MOVE_TIME*len(lengths)
         run_times = [length/total_length*total_run_time for length in lengths]
 
-        for (curve, run_time) in zip(curves_to_draw, run_times):
+        for (stroke, run_time) in zip(strokes_to_draw, run_times):
             self.play(
-                MovePencilTo(self.pencil, curve.point_from_proportion(0),
-                canvas = self.frame,
+                MovePencilTo(self.pencil, stroke.stencil.point_from_proportion(0),
                 run_time = PENCIL_MOVE_TIME
                 )
             )
             self.play(
-                ContinuousDraw(self.pencil, curve,
+                DrawStroke(self.pencil, stroke,
                     canvas = self.frame,
                     run_time = run_time
                 )
@@ -200,20 +231,20 @@ class PencilScene(Scene):
         self.add_foreground_mobject(self.frame)
         self.add_foreground_mobject(self.pencil)
         self.pencil.point_to(2*UP + 3*LEFT)
-        stencil = Annulus(inner_radius = 1, outer_radius = 2)
-        #stencil = SVGMobject(file_name='mypi').scale(1)
-        print(stencil.get_length())
-        print(stencil.get_proportional_length(1))
+        
+        #stencil = Circle()
+        #stencil = Annulus(inner_radius = 1, outer_radius = 2)
+        stencil = SVGMobject(file_name='mypi').scale(1)
+
         drawing = Drawing(stencil, uniform = True)
-        #return
+        self.play_drawing(drawing)
+
+
         # button1 = SegmentButton().move_to(4.2*LEFT + 3*DOWN)
         # self.add(button1)
 
         # touch = Touch()
 
         #self.play(TouchDown(touch, run_time = 0.1))
-
-        self.play_drawing(drawing)
-
 
 
