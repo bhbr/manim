@@ -486,11 +486,11 @@ class VMobject(Mobject):
     def get_anchors(self):
         return self.points[::3]
 
-    def get_proportional_main_length(self, alpha):
+    def get_proportional_proper_length(self, alpha):
         total_length = 0
         points = self.points
         anchors = self.get_anchors()[:-1]
-        dt = 0.001
+        dt = 0.01
         p0, p1, p2, p3 = ORIGIN, ORIGIN, ORIGIN, ORIGIN
         index = 0
 
@@ -525,18 +525,20 @@ class VMobject(Mobject):
 
         return total_length
 
-    def get_main_length(self):
-        return self.get_proportional_main_length(1)
+    def get_proper_length(self):
+        return self.get_proportional_proper_length(1)
 
     def get_proportional_length(self, alpha):
         mobs = self.get_family()
         nb_mobs = len(mobs)
+        # the parametrization is evenly split between the submob family
         index = int(alpha*nb_mobs)
-        remaining_alpha = alpha - index/nb_mobs
-        length = sum([mob.get_main_length() for mob in mobs[:index]])
+        length = sum([mob.get_proper_length() for mob in mobs[:index]])
 
         if index != nb_mobs:
-            length += mobs[index].get_proportional_main_length(remaining_alpha)
+            remaining_alpha = nb_mobs * alpha - index
+            length += mobs[index].get_proportional_proper_length(remaining_alpha)
+        
         return length
 
     def get_length(self):
@@ -544,6 +546,7 @@ class VMobject(Mobject):
 
     def get_length_derivative(self, alpha):
         # helper for get_proportion_from_length
+        # (if using Newton's method)
         da = 0.01
         if alpha == 0:
             da0, da1 = 0, da
@@ -551,9 +554,12 @@ class VMobject(Mobject):
             da0, da1 = -da, 0
         else:
             da0, da1 = -da, da
-        l0 = self.get_proportional_length(alpha + da0)
-        l1 = self.get_proportional_length(alpha + da1)
-        return (l1 - l0)/(da1 - da0)
+        # l0 = self.get_proportional_length(alpha + da0)
+        # l1 = self.get_proportional_length(alpha + da1)
+        # return (l1 - l0)/(da1 - da0)
+        p0 = self.point_from_proportion(alpha + da0)
+        p1 = self.point_from_proportion(alpha + da1)
+        return np.abs(p1 - p0)/(da1 - da0)
 
     def get_proportion_from_length(self, length):
 
@@ -566,12 +572,12 @@ class VMobject(Mobject):
         if method == 'piecewise_linear':
             ### PIECEWISE LINEAR INTERPOPLATION ###
             if self.sampled_lengths == []:
-                da = 0.003
+                da = 0.03
                 self.sampled_alphas = np.arange(0,1,da)
                 self.sampled_lengths = []
                 for alpha in self.sampled_alphas:
-                 self.sampled_lengths.append(self.get_proportional_length(alpha))
-                 print('resampling, ' + str(int(alpha*100)) + ' % done' )
+                    self.sampled_lengths.append(self.get_proportional_length(alpha))
+                    print('resampling, ' + str(int(alpha*100)) + ' % done' )
                 
             index = 0
             for (i,sampled_length) in enumerate(self.sampled_lengths):

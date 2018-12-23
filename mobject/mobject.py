@@ -32,7 +32,7 @@ class Mobject(Container):
     Mathematical Object
     """
     CONFIG = {
-        "color": WHITE,
+        "color": BLACK,
         "name": None,
         "dim": 3,
         "target": None,
