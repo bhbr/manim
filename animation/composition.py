@@ -8,7 +8,7 @@ from constants import *
 
 import warnings
 
-from animation.animation import Animation
+from animation.animation import Animation, ScheduledAnimation
 from mobject.mobject import Group
 from mobject.mobject import Mobject
 from utils.bezier import inverse_interpolate
@@ -55,22 +55,27 @@ class Succession(Animation):
         def invoke_curr_class(state):
             if state["curr_class"] is None:
                 return
+            if state["curr_class"] == ScheduledAnimation.__class__:
+                update_on_init = False
+            else:
+                update_on_init = True
             anim = state["curr_class"](
                 *state["curr_class_args"],
+                update_on_init = update_on_init,
                 **state["curr_class_config"]
             )
             state["animations"].append(anim)
-            anim.update(1)
+            if not isinstance(anim, ScheduledAnimation):
+                anim.update(1)
             state["curr_class"] = None
             state["curr_class_args"] = []
             state["curr_class_config"] = {}
 
         for arg in args:
             if isinstance(arg, Animation):
-                print('mobject now pointing at', arg.mobject.get_center())
                 animations.append(arg)
-                arg.update(1)
-                print('now we point at', arg.mobject.get_center())
+                if not isinstance(arg, ScheduledAnimation):
+                    arg.update(1)
                 invoke_curr_class(state)
             elif isinstance(arg, type) and issubclass(arg, Animation):
                 invoke_curr_class(state)
@@ -81,9 +86,9 @@ class Succession(Animation):
                 state["curr_class_args"].append(arg)
         invoke_curr_class(state)
         for anim in animations:
-            print('here we point at', anim.mobject.get_center())
-            anim.update(0)
-            print('and here we point at', anim.mobject.get_center())
+            if not isinstance(anim, ScheduledAnimation):
+                # (those initialize themselves just in time)
+                anim.update(0)
 
         animations = [x for x in animations if not(x.empty)]
 
@@ -127,11 +132,16 @@ class Succession(Animation):
 
         Animation.__init__(self, self.mobject, run_time=run_time, **kwargs)
 
+        # print(self.mobject.submobjects)
+        # for anim in self.animations:
+        #     print(anim, anim.mobject, anim.mobject.get_center())
+
     # Beware: This does NOT take care of calling update(0) on the subanimation.
     # This was important to avoid a pernicious possibility in which subanimations were called
     # with update twice, which could in turn call a sub-Succession with update four times,
     # continuing exponentially.
     def jump_to_start_of_anim(self, index):
+
         if index != self.current_anim_index:
             # Should probably have a cleaner "remove_all" method...
             self.mobject.remove(*self.mobject.submobjects)
@@ -139,8 +149,9 @@ class Succession(Animation):
             self.mobject.add(self.animations[index].mobject)
 
         for i in range(index):
-            self.animations[i].update(1)
-            print(self.animations[i], '.update(1)')
+            anim = self.animations[i]
+            if (not isinstance(anim, ScheduledAnimation)):
+                anim.update(1)
 
         self.current_anim_index = index
         self.current_alpha = self.critical_alphas[index]
@@ -177,6 +188,7 @@ class Succession(Animation):
             self.critical_alphas[i + 1],
             alpha
         )
+
         self.animations[i].update(sub_alpha)
         self.current_alpha = alpha
 
@@ -221,7 +233,7 @@ class AnimationGroup(Animation):
         for anim in self.sub_anims:
             anim.update_config(**kwargs)
 
-# Variants on mappin an animation over submobjectsg
+# Variants on mapping an animation over submobjects
 
 
 class LaggedStart(Animation):

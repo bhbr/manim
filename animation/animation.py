@@ -8,6 +8,7 @@ from utils.config_ops import instantiate
 from utils.config_ops import digest_config
 
 
+
 class Animation(object):
     CONFIG = {
         "run_time": DEFAULT_ANIMATION_RUN_TIME,
@@ -21,7 +22,8 @@ class Animation(object):
         "lag_factor": 2,
         # Used by EmptyAnimation to announce itself ignorable
         # in Successions and AnimationGroups
-        "empty": False
+        "empty": False,
+        "update_on_init": True
     }
 
     def __init__(self, mobject, **kwargs):
@@ -34,7 +36,8 @@ class Animation(object):
         if self.name is None:
             self.name = self.__class__.__name__ + str(self.mobject)
         self.all_families_zipped = self.get_all_families_zipped()
-        self.update(0)
+        if self.update_on_init:
+            self.update(0)
 
     def update_config(self, **kwargs):
         digest_config(self, kwargs)
@@ -124,3 +127,33 @@ class Animation(object):
             if self.is_remover():
                 surrounding_scene.remove(self.mobject)
         return self
+
+
+
+class ScheduledAnimation(Animation):
+    CONFIG = {
+        'update_on_init': False
+    }
+
+    def __init__(self, *args, **kwargs):
+        self.type = args[0]
+        if self.type.__name__ == 'ApplyMethod':
+            self.mobject = args[1].__self__
+        else:
+            self.mobject = args[1]
+        self.args = args[1:]
+        self.kwargs = kwargs
+        Animation.__init__(self, self.mobject, **kwargs)
+
+    def update_mobject(self, alpha):
+        if not hasattr(self, 'animation'):
+            # just-in-time initialization
+            self.animation = self.type(
+                *self.args, **self.kwargs
+            )
+        self.animation.update_mobject(alpha)
+
+
+
+
+

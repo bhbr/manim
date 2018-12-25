@@ -78,6 +78,11 @@ class Stroke(VMobject):
     def point_from_proportion(self, alpha):
         return self.stencil.point_from_proportion(alpha)
 
+    def get_start(self):
+        return self.stencil.point_from_proportion(0)
+
+    def get_end(self):
+        return self.stencil.point_from_proportion(1)
 
 class DrawnArc(Stroke):
     CONFIG = {
@@ -131,7 +136,8 @@ class MovePencilTo(Transform):
 class DrawStroke(Animation):
     CONFIG = {
         'color': BLACK,
-        'canvas': None
+        'canvas': None,
+        'rate_func': (lambda x: x)
     }
 
     def __init__(self, pencil, stroke, **kwargs):
@@ -143,7 +149,7 @@ class DrawStroke(Animation):
         self.stroke = stroke
         self.drops = self.stroke.submobjects
 
-        self.stroke.set_fill(opacity=1)
+        #self.stroke.set_fill(opacity=1)
         for drop in self.drops:
             drop.set_stroke(opacity=0, width=0)
             drop.set_fill(opacity=0, color=self.color)
@@ -169,14 +175,36 @@ class DrawStroke(Animation):
 class Draw(Succession):
     CONFIG = {
         'color': BLACK,
-        'canvas': None
+        'canvas': None,
+        'rate_func': (lambda x: x)
     }
 
     def __init__(self, pencil, drawing, **kwargs):
-        anims = []
+        draw_lengths = [stroke.get_length() for stroke in drawing.get_strokes()]
+        move_lengths = []
+        p0 = pencil.tip
         for stroke in drawing.get_strokes():
-            anims.append(DrawStroke(pencil, stroke, **kwargs))
-        Succession.__init__(self, *anims, **kwargs)
+            p1 = stroke.get_start()
+            move_lengths.append(np.linalg.norm(p1 - p0))
+            p0 = p1
+
+        total_length = sum(draw_lengths) + sum(move_lengths)
+        draw_time_proportions = [length/total_length for length in draw_lengths]
+        move_time_proportions = [length/total_length for length in move_lengths]
+        kwargs_here = kwargs.copy()
+        run_time = kwargs_here.pop('run_time', 1)
+        draw_run_times = [prop * run_time for prop in draw_time_proportions]
+        move_run_times = [prop * run_time for prop in move_time_proportions]
+
+        anims = []
+        for (stroke, draw_run_time, move_run_time) \
+            in zip(drawing.get_strokes(), draw_run_times, move_run_times):
+            anims.append(DrawStroke(pencil, stroke,
+                run_time = draw_run_time, **kwargs_here))
+            anims.append(MovePencilTo(pencil, stroke.get_start(),
+                run_time = move_run_time, **kwargs_here))
+
+        Succession.__init__(self, *anims, **kwargs_here)
 
 
 
@@ -276,29 +304,6 @@ class TouchDown(Animation):
 
 class PencilScene(Scene):
 
-    def play_drawing(self, drawing, run_time = 1):
-        PENCIL_MOVE_TIME = 0.5
-        strokes_to_draw = [stroke for stroke in drawing.get_strokes()
-            if stroke.get_length() > 0 and len(stroke.stencil.submobjects) == 0]
-        lengths = [stroke.get_length() for stroke in strokes_to_draw]
-        total_length = drawing.get_length()
-        total_run_time = run_time + PENCIL_MOVE_TIME*len(lengths)
-        run_times = [length/total_length*total_run_time for length in lengths]
-
-        for (stroke, run_time) in zip(strokes_to_draw, run_times):
-            self.play(
-                MovePencilTo(self.pencil, stroke.stencil.point_from_proportion(0),
-                run_time = PENCIL_MOVE_TIME
-                )
-            )
-            self.play(
-                DrawStroke(self.pencil, stroke,
-                    canvas = self.frame,
-                    run_time = run_time
-                )
-            )
-
-
     def construct(self):
         self.frame = ImageMobject(filename_or_array='ipad_frame').scale(4)
         self.pencil = Pencil(pointing_angle = 0)
@@ -306,16 +311,16 @@ class PencilScene(Scene):
         self.add_foreground_mobject(self.pencil)
         self.pencil.point_to(2*UP + 3*LEFT)
         
-        #stencil = Circle()
+        stencil = Circle()
         #stencil = Annulus(inner_radius = 1, outer_radius = 2)
         #stencil = SVGMobject(file_name='mypi').scale(1)
-        stencil = Randolph()
+        #stencil = Randolph()
 
         path = Drawing(stencil, uniform = False)
         lengths = [stroke.get_length() for stroke in path.get_strokes()]
-        print(lengths, path.get_length())
         self.play(
-            Draw(self.pencil, path, canvas=self.frame) #, modes={0.5: 'segment'})
+            DrawStroke(self.pencil, path.get_strokes()[0], canvas=self.frame,
+            run_time = 5) #, modes={0.5: 'segment'})
         )
 
 
@@ -325,5 +330,29 @@ class PencilScene(Scene):
         # touch = Touch()
 
         #self.play(TouchDown(touch, run_time = 0.1))
+
+
+
+class TestScene(Scene):
+
+    def construct(self):
+
+        c = Circle(stroke_color=BLUE)
+        self.add(c)
+        anim1 = ScheduledAnimation(ApplyMethod, c.move_to, UP)
+        anim2 = ScheduledAnimation(ApplyMethod, c.move_to, RIGHT)
+        self.play(
+            #anim1
+            Succession(anim1, anim2)
+        )
+
+        #self.play(anim2)
+
+
+
+
+
+
+
 
 
