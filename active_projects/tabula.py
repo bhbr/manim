@@ -124,7 +124,10 @@ class Drawing(VGroup): # a group of Strokes
         return self.submobjects
 
 
-class MovePencilTo(Transform):
+class MovePencilTo(MoveToTarget):
+    CONFIG = {
+        "replace_mobject_with_target_in_scene": True,
+    }
     def __init__(self, pencil, target_tip, **kwargs):
         pencil.target = pencil.copy()
         pencil.target.point_to(target_tip)
@@ -199,10 +202,10 @@ class Draw(Succession):
         anims = []
         for (stroke, draw_run_time, move_run_time) \
             in zip(drawing.get_strokes(), draw_run_times, move_run_times):
-            anims.append(DrawStroke(pencil, stroke,
-                run_time = draw_run_time, **kwargs_here))
-            anims.append(MovePencilTo(pencil, stroke.get_start(),
+            anims.append(ScheduledAnimation(MovePencilTo, pencil, stroke.get_start(),
                 run_time = move_run_time, **kwargs_here))
+            anims.append(ScheduledAnimation(DrawStroke, pencil, stroke,
+                run_time = draw_run_time, **kwargs_here))
 
         Succession.__init__(self, *anims, **kwargs_here)
 
@@ -311,16 +314,16 @@ class PencilScene(Scene):
         self.add_foreground_mobject(self.pencil)
         self.pencil.point_to(2*UP + 3*LEFT)
         
-        stencil = Circle()
+        #stencil = Circle()
         #stencil = Annulus(inner_radius = 1, outer_radius = 2)
         #stencil = SVGMobject(file_name='mypi').scale(1)
-        #stencil = Randolph()
+        stencil = Randolph()
 
-        path = Drawing(stencil, uniform = False)
+        path = Drawing(stencil, uniform = True)
         lengths = [stroke.get_length() for stroke in path.get_strokes()]
         self.play(
-            DrawStroke(self.pencil, path.get_strokes()[0], canvas=self.frame,
-            run_time = 5) #, modes={0.5: 'segment'})
+            Draw(self.pencil, path, canvas=self.frame,
+            run_time = 15, rate_func = (lambda x: x))
         )
 
 

@@ -119,7 +119,8 @@ class Succession(Animation):
         for i in range(self.num_anims):
             self.scene_mobjects_at_time[i +
                                         1] = self.scene_mobjects_at_time[i].copy()
-            self.animations[i].clean_up(self.scene_mobjects_at_time[i + 1])
+            if not isinstance(self.animations[i], ScheduledAnimation):
+                self.animations[i].clean_up(self.scene_mobjects_at_time[i + 1])
 
         self.current_alpha = 0
         # If self.num_anims == 0, this is an invalid index, but so it goes
@@ -131,10 +132,6 @@ class Succession(Animation):
             self.mobject = Group()
 
         Animation.__init__(self, self.mobject, run_time=run_time, **kwargs)
-
-        # print(self.mobject.submobjects)
-        # for anim in self.animations:
-        #     print(anim, anim.mobject, anim.mobject.get_center())
 
     # Beware: This does NOT take care of calling update(0) on the subanimation.
     # This was important to avoid a pernicious possibility in which subanimations were called
