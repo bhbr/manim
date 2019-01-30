@@ -2,13 +2,14 @@ from big_ol_pile_of_manim_imports import *
 
 PENCIL_WIDTH = 0.03
 DROP_DENSITY = 200
+PENCIL_LIFT_ANGLE = TAU/40
+PENCIL_LIFT_TIME = 0.2
 
 class Pencil(ImageMobject):
     CONFIG = {
         'tip': ORIGIN,
         'pointing_angle': 1/8 * TAU, # from the top
-        'tip_is_down': False,
-        'mode': 'draw'
+        'tip_is_down': False
     }
 
     def __init__(self, **kwargs):
@@ -29,6 +30,13 @@ class Pencil(ImageMobject):
     def pen_up(self):
         self.tip_is_down = False
 
+    @property
+    def tip_is_up(self):
+        return not self.tip_is_down
+
+    @tip_is_up.setter
+    def tip_is_up(self, new_value):
+        self.tip_is_down = not new_value
 
 class Stroke(VMobject):
     CONFIG = {
@@ -53,7 +61,6 @@ class Stroke(VMobject):
 
         if len(self.stencil.points) != 0:
             self.stencil.insert_n_anchor_points(nb_new_anchors)
-            #self.set_fill(opacity=0)
             for point in self.stencil.get_anchors():
                 drop = Dot(
                     radius=0.5*self.width,
@@ -152,7 +159,6 @@ class DrawStroke(Animation):
         self.stroke = stroke
         self.drops = self.stroke.submobjects
 
-        #self.stroke.set_fill(opacity=1)
         for drop in self.drops:
             drop.set_stroke(opacity=0, width=0)
             drop.set_fill(opacity=0, color=self.color)
@@ -200,52 +206,48 @@ class Draw(Succession):
         move_run_times = [prop * run_time for prop in move_time_proportions]
 
         anims = []
+        #anims.append(ScheduledAnimation(PencilUp, pencil,
+        #    run_time = PENCIL_LIFT_TIME, **kwargs_here))
         for (stroke, draw_run_time, move_run_time) \
             in zip(drawing.get_strokes(), draw_run_times, move_run_times):
             anims.append(ScheduledAnimation(MovePencilTo, pencil, stroke.get_start(),
                 run_time = move_run_time, **kwargs_here))
+            #anims.append(ScheduledAnimation(PencilDown, pencil,
+            #    run_time = PENCIL_LIFT_TIME, **kwargs_here))
             anims.append(ScheduledAnimation(DrawStroke, pencil, stroke,
                 run_time = draw_run_time, **kwargs_here))
+            #anims.append(ScheduledAnimation(PencilUp, pencil,
+            #    run_time = PENCIL_LIFT_TIME, **kwargs_here))
 
         Succession.__init__(self, *anims, **kwargs_here)
 
 
+class PencilDown(Rotate):
+    # does not work bc of jittering
+    CONFIG = {
+        'in_place': True,
+        'run_time': 0.2
+    }
+    def __init__(self, pencil, **kwargs):
+        if pencil.tip_is_up:
+            Rotate.__init__(self, pencil, angle=PENCIL_LIFT_ANGLE, **kwargs)
+            pencil.pen_down()
+        else:
+            Rotate.__init__(self, pencil, angle=0, run_time=0, empty=True)
 
+class PencilUp(Rotate):
+    # does not work bc of jittering
+    CONFIG = {
+        'in_place': True,
+        'run_time': 0.2
+    }
 
-
-class DragPencil(DrawStroke):
-
-    def __init__(self, pencil, stroke, modes = {}, **kwargs):
-
-        def mode_function(alpha):
-            if modes == {}:
-                return 'draw'
-            time_stamps = sorted(modes.keys())
-            if alpha < time_stamps[0]:
-                return 'draw'
-            time_stamps = list(filter(lambda x: x <= alpha, time_stamps))
-            return modes[time_stamps[-1]]
-
-        DrawStroke.__init__(self, pencil, stroke, mode_function=mode_function, **kwargs)
-
-        if 'segment' in modes.values():
-            self.startDot = Dot().move_to(pencil.tip)
-            self.endDot = self.startDot.copy()
-            self.segment = Line(pencil.tip, pencil.tip)
-            self.canvas.add(self.startDot, self.endDot, self.segment)
-
-
-    def update_mobject(self, alpha):
-        current_mode = self.mode_function(alpha)
-        if current_mode == 'draw':
-            super(DrawStroke, self).update_mobject(alpha)
-        elif current_mode == 'segment':
-            for drop in self.drops:
-                drop.set_fill(opacity = 0)
-            self.endDot.move_to(self.pencil.tip)
-            self.segment.end = self.pencil.tip
-
-
+    def __init__(self, pencil, **kwargs):
+        if pencil.tip_is_down:
+            Rotate.__init__(self, pencil, angle=-PENCIL_LIFT_ANGLE, **kwargs)
+            pencil.pen_up()
+        else:
+            Rotate.__init__(self, pencil, angle=0, run_time=0, empty=True)
 
 
 
@@ -271,7 +273,7 @@ class Button(Circle):
 
 class SegmentButton(Button):
     CONFIG = {
-        'logo_file': 'segment'
+        'logo_file': 'segment.png'
     }
 
 class Touch(VGroup):
@@ -305,54 +307,59 @@ class TouchDown(Animation):
             ring.set_fill(opacity=opacity)
 
 
+
 class PencilScene(Scene):
 
     def construct(self):
         self.frame = ImageMobject(filename_or_array='ipad_frame').scale(4)
         self.pencil = Pencil(pointing_angle = 0)
-        self.add_foreground_mobject(self.frame)
+        self.add(self.frame)
         self.add_foreground_mobject(self.pencil)
         self.pencil.point_to(2*UP + 3*LEFT)
+        #self.pencil.rotate(-PENCIL_LIFT_ANGLE) # starts lifted up
         
         #stencil = Circle()
         #stencil = Annulus(inner_radius = 1, outer_radius = 2)
         #stencil = SVGMobject(file_name='mypi').scale(1)
-        stencil = Randolph()
+        # stencil = Randolph()
+        # path = Drawing(stencil, uniform = True)
 
-        path = Drawing(stencil, uniform = True)
-        lengths = [stroke.get_length() for stroke in path.get_strokes()]
+        # self.play(
+        #     PencilDown(self.pencil),
+        # )
+
+
+
+        # self.play(
+        #     PencilUp(self.pencil),
+        # )
+
+        self.segment_button = SegmentButton().move_to(3*DOWN + 4.2*LEFT)
+        self.frame.add(self.segment_button)
+
+        path1 = ArcBetweenPoints(3*UP, RIGHT + 2*UP, angle = -TAU/8)
+        self.move_along_path(path1, 'draw', run_time = 1, rate_func = slow_into)
+
+
+    def move_along_path(self, path, mode, run_time = 1, rate_func = linear):
+
         self.play(
-            Draw(self.pencil, path, canvas=self.frame,
-            run_time = 15, rate_func = (lambda x: x))
+            MovePencilTo(path.get_start(), run_time = 0.3)
         )
 
-
-        # button1 = SegmentButton().move_to(4.2*LEFT + 3*DOWN)
-        # self.add(button1)
-
-        # touch = Touch()
-
-        #self.play(TouchDown(touch, run_time = 0.1))
-
-
-
-class TestScene(Scene):
-
-    def construct(self):
-
-        c = Circle(stroke_color=BLUE)
-        self.add(c)
-        anim1 = ScheduledAnimation(ApplyMethod, c.move_to, UP)
-        anim2 = ScheduledAnimation(ApplyMethod, c.move_to, RIGHT)
-        self.play(
-            #anim1
-            Succession(anim1, anim2)
-        )
-
-        #self.play(anim2)
-
-
-
+        if mode == 'draw':
+            stroke = Stroke(path)
+            self.play(
+                DrawStroke(self.pencil, stroke, canvas = self.frame,
+                run_time = run_time, rate_func = rate_func)
+            )
+        elif mode == 'segment':
+            if not hasattr(self, 'segment_start'):
+                self.segment_start = pencil.tip
+                self.segment_end = pencil.tip
+            self.play(
+                
+            )
 
 
 
