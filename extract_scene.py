@@ -30,7 +30,7 @@ HELP_MESSAGE = """
    -a run and save every scene in the script, or all args for the given scene
    -q don't print progress
    -f when writing to a movie file, export the frames in png sequence
-   -t use transperency when exporting images
+   -t use transparency when exporting images
    -n specify the number of the animation to start from
    -r specify a resolution
    -c specify a background color
